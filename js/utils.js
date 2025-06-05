@@ -88,7 +88,7 @@ class Utils {
                             importedData = lines.slice(1).map((line, index) => {
                                 const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
                                 const workOrder = {
-                                    id: window.appState.nextId++,
+                                    id: window.workOrderManager.generateTempId(),
                                     title: values[1] || `Imported Work Order ${index + 1}`,
                                     description: values[2] || '',
                                     assignee: values[3] || '',
@@ -111,7 +111,12 @@ class Utils {
                         }
                         
                         window.appState.workOrders = importedData;
-                        window.appState.nextId = Math.max(...window.appState.workOrders.map(wo => wo.id)) + 1;
+                        if (importedData.length > 0) {
+                            const maxId = Math.max(...importedData.map(wo => wo.id));
+                            if (maxId > 0) {
+                                window.appState.nextId = Math.max(window.appState.nextId, maxId + 1);
+                            }
+                        }
                         window.storageManager.saveToStorage();
                         window.workOrderManager.renderWorkOrders();
                         window.workOrderManager.updateStats();
@@ -154,7 +159,7 @@ class Utils {
     loadSampleData() {
         const sampleOrders = [
             {
-                id: window.appState.nextId++,
+                id: window.workOrderManager.generateTempId(),
                 title: "Fix Office Printer",
                 description: "The main office printer is jamming frequently and needs maintenance. Users are unable to print important documents.",
                 assignee: "John Smith",
@@ -166,7 +171,7 @@ class Utils {
                 updatedDate: new Date(Date.now() - 86400000).toISOString()
             },
             {
-                id: window.appState.nextId++,
+                id: window.workOrderManager.generateTempId(),
                 title: "Update Software Documentation",
                 description: "Review and update the user manual for the new software version. Include screenshots and step-by-step instructions.",
                 assignee: "Sarah Johnson",
@@ -178,7 +183,7 @@ class Utils {
                 updatedDate: new Date(Date.now() - 43200000).toISOString() // 12 hours ago
             },
             {
-                id: window.appState.nextId++,
+                id: window.workOrderManager.generateTempId(),
                 title: "Replace Broken Conference Room Chair",
                 description: "One of the chairs in Conference Room B has a broken wheel and needs to be replaced for safety reasons.",
                 assignee: "Mike Wilson",

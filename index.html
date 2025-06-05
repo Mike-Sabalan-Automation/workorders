@@ -1020,6 +1020,12 @@
             if (!currentUser || !isSupabaseConfigured || !supabaseClient) return false;
             
             try {
+                console.log('DEBUG: Starting saveToSupabase with workOrder:', {
+                    id: workOrder.id,
+                    title: workOrder.title,
+                    isTemporary: workOrder.id < 0
+                });
+                
                 // Map JavaScript object to database field names
                 const dbWorkOrder = {
                     user_id: currentUser.id,
@@ -1036,53 +1042,90 @@
                     updated_date: workOrder.updatedDate
                 };
                 
+                console.log('DEBUG: Mapped dbWorkOrder (no ID):', dbWorkOrder);
+                
                 let result;
                 
-                // Check if this is an update (work order already exists in Supabase)
-                const existingWorkOrder = await supabaseClient
-                    .from('work_orders')
-                    .select('id')
-                    .eq('id', workOrder.id)
-                    .eq('user_id', currentUser.id)
-                    .single();
-                
-                if (existingWorkOrder.data && !existingWorkOrder.error) {
-                    // Update existing work order
-                    result = await supabaseClient
-                        .from('work_orders')
-                        .update(dbWorkOrder)
-                        .eq('id', workOrder.id)
-                        .eq('user_id', currentUser.id);
-                } else {
+                // For temporary IDs (negative numbers), always insert as new
+                if (workOrder.id < 0) {
+                    console.log('DEBUG: Temporary ID detected, inserting new work order');
+                    
                     // Insert new work order (let database generate ID)
-                    // Don't include ID in insert - let database auto-generate
                     result = await supabaseClient
                         .from('work_orders')
                         .insert(dbWorkOrder)
                         .select(); // Return the inserted record with generated ID
                     
+                    console.log('DEBUG: Insert result:', result);
+                    
                     // Update local work order with the database-generated ID
                     if (result.data && result.data[0]) {
                         const insertedId = result.data[0].id;
+                        console.log('DEBUG: Database generated ID:', insertedId);
+                        
                         const index = workOrders.findIndex(wo => wo.id === workOrder.id);
                         if (index !== -1) {
+                            console.log('DEBUG: Updating local work order at index', index, 'from ID', workOrder.id, 'to ID', insertedId);
                             workOrders[index].id = insertedId;
                         }
-                        // Update nextId to prevent conflicts with localStorage
+                        // Update nextId to prevent conflicts
                         nextId = Math.max(nextId, insertedId + 1);
+                        console.log('DEBUG: Updated nextId to:', nextId);
+                    }
+                } else {
+                    console.log('DEBUG: Positive ID detected, checking if exists for update');
+                    
+                    // Check if this is an update (work order already exists in Supabase)
+                    const existingWorkOrder = await supabaseClient
+                        .from('work_orders')
+                        .select('id')
+                        .eq('id', workOrder.id)
+                        .eq('user_id', currentUser.id)
+                        .single();
+                    
+                    console.log('DEBUG: Existing work order check:', existingWorkOrder);
+                    
+                    if (existingWorkOrder.data && !existingWorkOrder.error) {
+                        // Update existing work order
+                        console.log('DEBUG: Updating existing work order');
+                        result = await supabaseClient
+                            .from('work_orders')
+                            .update(dbWorkOrder)
+                            .eq('id', workOrder.id)
+                            .eq('user_id', currentUser.id);
+                    } else {
+                        // This should not happen with our new logic, but handle it
+                        console.log('DEBUG: Positive ID but no existing record found, inserting new');
+                        result = await supabaseClient
+                            .from('work_orders')
+                            .insert(dbWorkOrder)
+                            .select();
+                        
+                        if (result.data && result.data[0]) {
+                            const insertedId = result.data[0].id;
+                            console.log('DEBUG: Fallback insert generated ID:', insertedId);
+                            
+                            const index = workOrders.findIndex(wo => wo.id === workOrder.id);
+                            if (index !== -1) {
+                                workOrders[index].id = insertedId;
+                            }
+                            nextId = Math.max(nextId, insertedId + 1);
+                        }
                     }
                 }
                 
                 if (result.error) {
-                    console.error('Error saving to Supabase:', result.error);
+                    console.error('ERROR: Supabase operation failed:', result.error);
+                    console.error('ERROR: Full error details:', JSON.stringify(result.error, null, 2));
                     showNotification(`Database error: ${result.error.message}`, 'error');
                     return false;
                 }
                 
-                console.log('Successfully saved to Supabase:', workOrder.id);
+                console.log('SUCCESS: Saved to Supabase successfully');
                 return true;
             } catch (error) {
-                console.error('Error saving to Supabase:', error);
+                console.error('EXCEPTION: Error in saveToSupabase:', error);
+                console.error('EXCEPTION: Stack trace:', error.stack);
                 showNotification(`Save error: ${error.message}`, 'error');
                 return false;
             }
@@ -1240,10 +1283,13 @@
         // Generate a temporary ID for new work orders (will be replaced by database ID)
         function generateTempId() {
             // Use negative numbers for temp IDs to avoid conflicts with database IDs
-            return -Date.now();
+            const tempId = -Date.now();
+            console.log('DEBUG: Generated temporary ID:', tempId);
+            return tempId;
         }
 
         function createWorkOrder(workOrder) {
+            console.log('DEBUG: Creating work order with ID:', workOrder.id, 'Title:', workOrder.title);
             workOrders.push(workOrder);
             
             // Always save to localStorage as backup
@@ -1251,16 +1297,22 @@
             
             // Try to save to Supabase if authenticated
             if (currentUser && isSupabaseConfigured && supabaseClient) {
-                console.log('Attempting to save to Supabase...', workOrder);
+                console.log('DEBUG: Attempting to save to Supabase...', {
+                    id: workOrder.id,
+                    title: workOrder.title,
+                    isTemporary: workOrder.id < 0
+                });
                 saveToSupabase(workOrder).then(success => {
                     if (success) {
                         showNotification('Work order saved to cloud successfully!', 'success');
+                        // Re-render to show updated ID
+                        renderWorkOrders();
                     } else {
                         showNotification('Work order saved locally only', 'info');
                     }
                 });
             } else {
-                console.log('Saving locally only (not authenticated)');
+                console.log('DEBUG: Saving locally only (not authenticated)');
                 showNotification('Work order created successfully!', 'success');
             }
         }
@@ -1541,7 +1593,7 @@
         function loadSampleData() {
             const sampleOrders = [
                 {
-                    id: nextId++,
+                    id: generateTempId(),
                     title: "Fix Office Printer",
                     description: "The main office printer is jamming frequently and needs maintenance. Users are unable to print important documents.",
                     assignee: "John Smith",
@@ -1553,7 +1605,7 @@
                     updatedDate: new Date(Date.now() - 86400000).toISOString()
                 },
                 {
-                    id: nextId++,
+                    id: generateTempId(),
                     title: "Update Software Documentation",
                     description: "Review and update the user manual for the new software version. Include screenshots and step-by-step instructions.",
                     assignee: "Sarah Johnson",
@@ -1565,7 +1617,7 @@
                     updatedDate: new Date(Date.now() - 43200000).toISOString() // 12 hours ago
                 },
                 {
-                    id: nextId++,
+                    id: generateTempId(),
                     title: "Replace Broken Conference Room Chair",
                     description: "One of the chairs in Conference Room B has a broken wheel and needs to be replaced for safety reasons.",
                     assignee: "Mike Wilson",
@@ -1677,7 +1729,7 @@
                                 importedData = lines.slice(1).map((line, index) => {
                                     const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
                                     const workOrder = {
-                                        id: nextId++,
+                                        id: generateTempId(),
                                         title: values[1] || `Imported Work Order ${index + 1}`,
                                         description: values[2] || '',
                                         assignee: values[3] || '',

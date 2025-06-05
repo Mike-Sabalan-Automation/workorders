@@ -42,10 +42,13 @@ class WorkOrderManager {
     // Generate a temporary ID for new work orders (will be replaced by database ID)
     generateTempId() {
         // Use negative numbers for temp IDs to avoid conflicts with database IDs
-        return -Date.now();
+        const tempId = -Date.now();
+        console.log('DEBUG: Generated temporary ID:', tempId);
+        return tempId;
     }
 
     createWorkOrder(workOrder) {
+        console.log('DEBUG: Creating work order with ID:', workOrder.id, 'Title:', workOrder.title);
         this.state.workOrders.push(workOrder);
         
         // Always save to localStorage as backup
@@ -53,16 +56,22 @@ class WorkOrderManager {
         
         // Try to save to Supabase if authenticated
         if (this.state.currentUser && window.appConfig.isSupabaseConfigured && window.appConfig.supabaseClient) {
-            console.log('Attempting to save to Supabase...', workOrder);
+            console.log('DEBUG: Attempting to save to Supabase...', {
+                id: workOrder.id,
+                title: workOrder.title,
+                isTemporary: workOrder.id < 0
+            });
             window.storageManager.saveToSupabase(workOrder).then(success => {
                 if (success) {
                     window.uiManager.showNotification('Work order saved to cloud successfully!', 'success');
+                    // Re-render to show updated ID
+                    this.renderWorkOrders();
                 } else {
                     window.uiManager.showNotification('Work order saved locally only', 'info');
                 }
             });
         } else {
-            console.log('Saving locally only (not authenticated)');
+            console.log('DEBUG: Saving locally only (not authenticated)');
             window.uiManager.showNotification('Work order created successfully!', 'success');
         }
     }
