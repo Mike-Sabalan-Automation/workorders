@@ -1054,11 +1054,23 @@
                         .eq('id', workOrder.id)
                         .eq('user_id', currentUser.id);
                 } else {
-                    // Insert new work order (include the ID)
-                    dbWorkOrder.id = workOrder.id;
+                    // Insert new work order (let database generate ID)
+                    // Don't include ID in insert - let database auto-generate
                     result = await supabaseClient
                         .from('work_orders')
-                        .insert(dbWorkOrder);
+                        .insert(dbWorkOrder)
+                        .select(); // Return the inserted record with generated ID
+                    
+                    // Update local work order with the database-generated ID
+                    if (result.data && result.data[0]) {
+                        const insertedId = result.data[0].id;
+                        const index = workOrders.findIndex(wo => wo.id === workOrder.id);
+                        if (index !== -1) {
+                            workOrders[index].id = insertedId;
+                        }
+                        // Update nextId to prevent conflicts with localStorage
+                        nextId = Math.max(nextId, insertedId + 1);
+                    }
                 }
                 
                 if (result.error) {
@@ -1195,8 +1207,12 @@
             e.preventDefault();
             
             const formData = new FormData(e.target);
+            const isEditMode = document.getElementById('edit-id').value;
+            
             const workOrder = {
-                id: document.getElementById('edit-id').value || nextId++,
+                id: isEditMode ? 
+                    parseInt(document.getElementById('edit-id').value) : 
+                    generateTempId(), // Use temporary ID for new work orders
                 title: formData.get('title'),
                 description: formData.get('description'),
                 assignee: formData.get('assignee'),
@@ -1204,13 +1220,13 @@
                 status: formData.get('status'),
                 dueDate: formData.get('due-date'),
                 estimatedHours: parseFloat(formData.get('estimated-hours')) || 0,
-                createdDate: document.getElementById('edit-id').value ? 
+                createdDate: isEditMode ? 
                     findWorkOrder(document.getElementById('edit-id').value).createdDate : 
                     new Date().toISOString(),
                 updatedDate: new Date().toISOString()
             };
 
-            if (document.getElementById('edit-id').value) {
+            if (isEditMode) {
                 updateWorkOrder(workOrder);
             } else {
                 createWorkOrder(workOrder);
@@ -1219,6 +1235,12 @@
             resetForm();
             renderWorkOrders();
             updateStats();
+        }
+        
+        // Generate a temporary ID for new work orders (will be replaced by database ID)
+        function generateTempId() {
+            // Use negative numbers for temp IDs to avoid conflicts with database IDs
+            return -Date.now();
         }
 
         function createWorkOrder(workOrder) {

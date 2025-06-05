@@ -9,8 +9,12 @@ class WorkOrderManager {
         e.preventDefault();
         
         const formData = new FormData(e.target);
+        const isEditMode = document.getElementById('edit-id').value;
+        
         const workOrder = {
-            id: document.getElementById('edit-id').value || this.state.nextId++,
+            id: isEditMode ? 
+                parseInt(document.getElementById('edit-id').value) : 
+                this.generateTempId(), // Use temporary ID for new work orders
             title: formData.get('title'),
             description: formData.get('description'),
             assignee: formData.get('assignee'),
@@ -18,13 +22,13 @@ class WorkOrderManager {
             status: formData.get('status'),
             dueDate: formData.get('due-date'),
             estimatedHours: parseFloat(formData.get('estimated-hours')) || 0,
-            createdDate: document.getElementById('edit-id').value ? 
+            createdDate: isEditMode ? 
                 this.findWorkOrder(document.getElementById('edit-id').value).createdDate : 
                 new Date().toISOString(),
             updatedDate: new Date().toISOString()
         };
 
-        if (document.getElementById('edit-id').value) {
+        if (isEditMode) {
             this.updateWorkOrder(workOrder);
         } else {
             this.createWorkOrder(workOrder);
@@ -33,6 +37,12 @@ class WorkOrderManager {
         window.uiManager.resetForm();
         this.renderWorkOrders();
         this.updateStats();
+    }
+    
+    // Generate a temporary ID for new work orders (will be replaced by database ID)
+    generateTempId() {
+        // Use negative numbers for temp IDs to avoid conflicts with database IDs
+        return -Date.now();
     }
 
     createWorkOrder(workOrder) {

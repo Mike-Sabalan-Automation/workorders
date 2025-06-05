@@ -159,11 +159,23 @@ class StorageManager {
                     .eq('id', workOrder.id)
                     .eq('user_id', this.state.currentUser.id);
             } else {
-                // Insert new work order (include the ID)
-                dbWorkOrder.id = workOrder.id;
+                // Insert new work order (let database generate ID)
+                // Don't include ID in insert - let database auto-generate
                 result = await this.config.supabaseClient
                     .from('work_orders')
-                    .insert(dbWorkOrder);
+                    .insert(dbWorkOrder)
+                    .select(); // Return the inserted record with generated ID
+                
+                // Update local work order with the database-generated ID
+                if (result.data && result.data[0]) {
+                    const insertedId = result.data[0].id;
+                    const index = this.state.workOrders.findIndex(wo => wo.id === workOrder.id);
+                    if (index !== -1) {
+                        this.state.workOrders[index].id = insertedId;
+                    }
+                    // Update nextId to prevent conflicts with localStorage
+                    this.state.nextId = Math.max(this.state.nextId, insertedId + 1);
+                }
             }
             
             if (result.error) {
