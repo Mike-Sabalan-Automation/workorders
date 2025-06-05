@@ -849,18 +849,32 @@
                     if (error) {
                         console.error('Logout error:', error);
                         showNotification('Error logging out', 'error');
-                        return;
                     }
                 } catch (error) {
                     console.error('Logout error:', error);
                 }
             }
             
+            // Always reset user state
             currentUser = null;
+            workOrders = [];
+            nextId = 1;
+            
+            // Clear localStorage
+            if (useLocalStorage) {
+                try {
+                    localStorage.removeItem('workOrders');
+                    localStorage.removeItem('nextId');
+                } catch (e) {
+                    console.warn('Failed to clear localStorage:', e);
+                }
+            }
+            
+            // Show appropriate view
             if (isSupabaseConfigured) {
                 showAuthView();
             } else {
-                // In localStorage mode, just reload the page to "logout"
+                // In localStorage mode, reload to clear everything
                 location.reload();
             }
         }
@@ -1433,40 +1447,112 @@
 
         // Export/Import functionality
         function exportWorkOrders() {
-            const dataStr = JSON.stringify(workOrders, null, 2);
-            const dataBlob = new Blob([dataStr], {type:'application/json'});
+            if (workOrders.length === 0) {
+                showNotification('No work orders to export!', 'error');
+                return;
+            }
+            
+            // Create CSV headers
+            const headers = [
+                'ID',
+                'Title',
+                'Description',
+                'Assignee',
+                'Priority',
+                'Status',
+                'Due Date',
+                'Estimated Hours',
+                'Created Date',
+                'Updated Date'
+            ];
+            
+            // Convert work orders to CSV rows
+            const csvRows = workOrders.map(wo => [
+                `WO-${String(wo.id).padStart(4, '0')}`,
+                `"${(wo.title || '').replace(/"/g, '""')}"`,
+                `"${(wo.description || '').replace(/"/g, '""')}"`,
+                `"${(wo.assignee || '').replace(/"/g, '""')}"`,
+                wo.priority || '',
+                wo.status || '',
+                wo.dueDate || '',
+                wo.estimatedHours || '',
+                formatDateTime(wo.createdDate),
+                formatDateTime(wo.updatedDate)
+            ]);
+            
+            // Combine headers and rows
+            const csvContent = [headers, ...csvRows]
+                .map(row => row.join(','))
+                .join('\n');
+            
+            // Create and download CSV file
+            const dataBlob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'work_orders_export.json';
+            link.download = `work_orders_export_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
             URL.revokeObjectURL(url);
-            showNotification('Work orders exported successfully!', 'success');
+            showNotification('Work orders exported to CSV successfully!', 'success');
         }
 
         function importWorkOrders() {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.json';
+            input.accept = '.csv,.json';
             input.onchange = function(e) {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         try {
-                            const importedData = JSON.parse(e.target.result);
-                            if (Array.isArray(importedData)) {
-                                workOrders = importedData;
-                                nextId = Math.max(...workOrders.map(wo => wo.id)) + 1;
-                                saveToStorage();
-                                renderWorkOrders();
-                                updateStats();
-                                showNotification('Work orders imported successfully!', 'success');
+                            const content = e.target.result;
+                            let importedData;
+                            
+                            if (file.name.toLowerCase().endsWith('.csv')) {
+                                // Parse CSV
+                                const lines = content.split('\n').filter(line => line.trim());
+                                if (lines.length < 2) {
+                                    showNotification('CSV file must have headers and at least one data row!', 'error');
+                                    return;
+                                }
+                                
+                                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                                importedData = lines.slice(1).map((line, index) => {
+                                    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                                    const workOrder = {
+                                        id: nextId++,
+                                        title: values[1] || `Imported Work Order ${index + 1}`,
+                                        description: values[2] || '',
+                                        assignee: values[3] || '',
+                                        priority: values[4] || 'medium',
+                                        status: values[5] || 'open',
+                                        dueDate: values[6] || '',
+                                        estimatedHours: parseFloat(values[7]) || 0,
+                                        createdDate: new Date().toISOString(),
+                                        updatedDate: new Date().toISOString()
+                                    };
+                                    return workOrder;
+                                });
                             } else {
-                                showNotification('Invalid file format!', 'error');
+                                // Parse JSON
+                                importedData = JSON.parse(content);
+                                if (!Array.isArray(importedData)) {
+                                    showNotification('Invalid JSON file format!', 'error');
+                                    return;
+                                }
                             }
+                            
+                            workOrders = importedData;
+                            nextId = Math.max(...workOrders.map(wo => wo.id)) + 1;
+                            saveToStorage();
+                            renderWorkOrders();
+                            updateStats();
+                            showNotification(`${importedData.length} work orders imported successfully!`, 'success');
+                            
                         } catch (error) {
-                            showNotification('Error importing file!', 'error');
+                            console.error('Import error:', error);
+                            showNotification('Error importing file! Please check the file format.', 'error');
                         }
                     };
                     reader.readAsText(file);
