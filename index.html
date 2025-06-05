@@ -935,11 +935,25 @@
                 }
                 
                 if (data && data.length > 0) {
-                    workOrders = data;
-                    nextId = Math.max(...data.map(wo => wo.id)) + 1;
+                    // Map database fields to JavaScript object fields
+                    workOrders = data.map(dbWorkOrder => ({
+                        id: dbWorkOrder.id,
+                        title: dbWorkOrder.title,
+                        description: dbWorkOrder.description || '',
+                        assignee: dbWorkOrder.assignee || '',
+                        priority: dbWorkOrder.priority || 'medium',
+                        status: dbWorkOrder.status || 'open',
+                        dueDate: dbWorkOrder.due_date || '',
+                        estimatedHours: dbWorkOrder.estimated_hours || 0,
+                        createdDate: dbWorkOrder.created_date,
+                        updatedDate: dbWorkOrder.updated_date
+                    }));
+                    nextId = Math.max(...workOrders.map(wo => wo.id)) + 1;
+                    console.log(`Loaded ${workOrders.length} work orders from Supabase`);
                 } else {
                     workOrders = [];
                     nextId = 1;
+                    console.log('No work orders found in Supabase');
                 }
                 
                 renderWorkOrders();
@@ -959,34 +973,57 @@
         async function saveToSupabase(workOrder) {
             if (!currentUser || !isSupabaseConfigured || !supabaseClient) return false;
             
-            // Add user_id to the work order
-            workOrder.user_id = currentUser.id;
-            
             try {
+                // Map JavaScript object to database field names
+                const dbWorkOrder = {
+                    user_id: currentUser.id,
+                    title: workOrder.title,
+                    description: workOrder.description || '',
+                    assignee: workOrder.assignee || '',
+                    priority: workOrder.priority || 'medium',
+                    status: workOrder.status || 'open',
+                    due_date: workOrder.dueDate || null,
+                    estimated_hours: workOrder.estimatedHours || 0,
+                    created_date: workOrder.createdDate,
+                    updated_date: workOrder.updatedDate
+                };
+                
                 let result;
                 
-                if (workOrders.find(wo => wo.id == workOrder.id)) {
+                // Check if this is an update (work order already exists in Supabase)
+                const existingWorkOrder = await supabaseClient
+                    .from('work_orders')
+                    .select('id')
+                    .eq('id', workOrder.id)
+                    .eq('user_id', currentUser.id)
+                    .single();
+                
+                if (existingWorkOrder.data && !existingWorkOrder.error) {
                     // Update existing work order
                     result = await supabaseClient
                         .from('work_orders')
-                        .update(workOrder)
+                        .update(dbWorkOrder)
                         .eq('id', workOrder.id)
                         .eq('user_id', currentUser.id);
                 } else {
-                    // Insert new work order
+                    // Insert new work order (include the ID)
+                    dbWorkOrder.id = workOrder.id;
                     result = await supabaseClient
                         .from('work_orders')
-                        .insert(workOrder);
+                        .insert(dbWorkOrder);
                 }
                 
                 if (result.error) {
                     console.error('Error saving to Supabase:', result.error);
+                    showNotification(`Database error: ${result.error.message}`, 'error');
                     return false;
                 }
                 
+                console.log('Successfully saved to Supabase:', workOrder.id);
                 return true;
             } catch (error) {
                 console.error('Error saving to Supabase:', error);
+                showNotification(`Save error: ${error.message}`, 'error');
                 return false;
             }
         }
@@ -1118,14 +1155,16 @@
             
             // Try to save to Supabase if authenticated
             if (currentUser && isSupabaseConfigured && supabaseClient) {
+                console.log('Attempting to save to Supabase...', workOrder);
                 saveToSupabase(workOrder).then(success => {
                     if (success) {
-                        showNotification('Work order created successfully!', 'success');
+                        showNotification('Work order saved to cloud successfully!', 'success');
                     } else {
-                        showNotification('Work order saved locally', 'info');
+                        showNotification('Work order saved locally only', 'info');
                     }
                 });
             } else {
+                console.log('Saving locally only (not authenticated)');
                 showNotification('Work order created successfully!', 'success');
             }
         }
@@ -1140,14 +1179,16 @@
                 
                 // Try to save to Supabase if authenticated
                 if (currentUser && isSupabaseConfigured && supabaseClient) {
+                    console.log('Attempting to update in Supabase...', updatedWorkOrder);
                     saveToSupabase(updatedWorkOrder).then(success => {
                         if (success) {
-                            showNotification('Work order updated successfully!', 'success');
+                            showNotification('Work order updated in cloud successfully!', 'success');
                         } else {
-                            showNotification('Work order saved locally', 'info');
+                            showNotification('Work order updated locally only', 'info');
                         }
                     });
                 } else {
+                    console.log('Updating locally only (not authenticated)');
                     showNotification('Work order updated successfully!', 'success');
                 }
             }
