@@ -88,7 +88,6 @@ class StorageManager {
                 this.state.workOrders = data.map(dbWorkOrder => ({
                     id: dbWorkOrder.id,
                     user_id: dbWorkOrder.user_id,
-                    client_id: dbWorkOrder.client_id,
                     title: dbWorkOrder.title,
                     description: dbWorkOrder.description || '',
                     assignee: dbWorkOrder.assignee || '',
@@ -125,11 +124,9 @@ class StorageManager {
         if (!this.state.currentUser || !this.config.isSupabaseConfigured || !this.config.supabaseClient) return false;
         
         try {
-            // Map JavaScript object to database field names
+            // Map JavaScript object to database field names (user properties are stored in auth.users, not work_orders)
             const dbWorkOrder = {
                 user_id: this.state.currentUser.id,
-                client_id: this.state.userClientId,
-                is_admin: this.state.isUserAdmin,
                 title: workOrder.title,
                 description: workOrder.description || '',
                 assignee: workOrder.assignee || '',
