@@ -1019,10 +1019,11 @@
             if (!currentUser || !isSupabaseConfigured || !supabaseClient) return false;
             
             try {
-                console.log('DEBUG: Starting saveToSupabase with workOrder:', {
+                console.log('DEBUG: Starting saveToSupabase with workOrder (UPDATED CODE):', {
                     id: workOrder.id,
                     title: workOrder.title,
-                    isTemporary: workOrder.id < 0
+                    isTemporary: workOrder.id < 0,
+                    timestamp: new Date().toISOString()
                 });
                 
                 // Map JavaScript object to database field names (user properties are stored in auth.users, not work_orders)
