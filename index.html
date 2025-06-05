@@ -680,6 +680,8 @@
         
         // Authentication state
         let currentUser = null;
+        let userClientId = 'default';
+        let isUserAdmin = false;
         
         // Storage management - uses Supabase when authenticated, falls back to localStorage
         let workOrders = [];
@@ -732,6 +734,37 @@
             }
         }
 
+        // Get user client information from JWT metadata
+        async function getUserClientInfo() {
+            if (!currentUser || !isSupabaseConfigured || !supabaseClient) {
+                userClientId = 'default';
+                isUserAdmin = false;
+                return;
+            }
+            
+            try {
+                // Get client info from user metadata or JWT
+                const session = await supabaseClient.auth.getSession();
+                if (session.data.session) {
+                    const jwt = session.data.session.access_token;
+                    const payload = JSON.parse(atob(jwt.split('.')[1]));
+                    
+                    userClientId = payload.client_id || currentUser.user_metadata?.client_id || 'default';
+                    isUserAdmin = payload.is_admin || currentUser.user_metadata?.is_admin || false;
+                    
+                    console.log(`User client info: client_id=${userClientId}, is_admin=${isUserAdmin}`);
+                    
+                    // Update UI to show admin status
+                    const userEmailElement = document.getElementById('user-email');
+                    userEmailElement.textContent = `${currentUser.email}${isUserAdmin ? ' (Admin)' : ''}`;
+                }
+            } catch (error) {
+                console.warn('Could not get client info:', error);
+                userClientId = 'default';
+                isUserAdmin = false;
+            }
+        }
+
         // Check if user is authenticated on page load
         async function checkAuth() {
             if (!isSupabaseConfigured || !supabaseClient) {
@@ -749,8 +782,9 @@
                 const { data: { user } } = await supabaseClient.auth.getUser();
                 if (user) {
                     currentUser = user;
+                    await getUserClientInfo();
                     showMainView();
-                    document.getElementById('user-email').textContent = user.email;
+                    setupAdminFilters();
                     loadUserData();
                 } else {
                     showAuthView();
@@ -799,8 +833,9 @@
                 }
                 
                 currentUser = data.user;
+                await getUserClientInfo();
                 showMainView();
-                document.getElementById('user-email').textContent = data.user.email;
+                setupAdminFilters();
                 loadUserData();
             } catch (error) {
                 document.getElementById('login-error').textContent = 'An unexpected error occurred';
@@ -837,8 +872,9 @@
                 // If auto-confirm is enabled (development), we can log in right away
                 if (data.user && data.session) {
                     currentUser = data.user;
+                    await getUserClientInfo();
                     showMainView();
-                    document.getElementById('user-email').textContent = data.user.email;
+                    setupAdminFilters();
                     loadUserData();
                 }
             } catch (error) {
@@ -920,10 +956,18 @@
             }
             
             try {
-                const { data, error } = await supabaseClient
-                    .from('work_orders')
-                    .select('*')
-                    .eq('user_id', currentUser.id);
+                // Query will be filtered by RLS policies based on client_id and admin status
+                let query = supabaseClient.from('work_orders').select('*');
+                
+                if (isUserAdmin) {
+                    // Admin users see all work orders for their client (RLS policy handles this)
+                    console.log('Loading work orders for admin user');
+                } else {
+                    // Regular users see only their own work orders
+                    query = query.eq('user_id', currentUser.id);
+                }
+                
+                const { data, error } = await query;
                     
                 if (error) {
                     console.error('Error loading work orders:', error);
@@ -938,6 +982,8 @@
                     // Map database fields to JavaScript object fields
                     workOrders = data.map(dbWorkOrder => ({
                         id: dbWorkOrder.id,
+                        user_id: dbWorkOrder.user_id,
+                        client_id: dbWorkOrder.client_id,
                         title: dbWorkOrder.title,
                         description: dbWorkOrder.description || '',
                         assignee: dbWorkOrder.assignee || '',
@@ -977,6 +1023,8 @@
                 // Map JavaScript object to database field names
                 const dbWorkOrder = {
                     user_id: currentUser.id,
+                    client_id: userClientId,
+                    is_admin: isUserAdmin,
                     title: workOrder.title,
                     description: workOrder.description || '',
                     assignee: workOrder.assignee || '',
@@ -1090,6 +1138,32 @@
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
             document.getElementById('due-date').value = tomorrow.toISOString().split('T')[0];
+        }
+
+        function setupAdminFilters() {
+            if (isUserAdmin && isSupabaseConfigured) {
+                // Add admin view filter
+                const filtersContainer = document.querySelector('.filters');
+                
+                // Check if admin filter already exists
+                if (!document.getElementById('filter-view')) {
+                    const adminFilterGroup = document.createElement('div');
+                    adminFilterGroup.className = 'filter-group';
+                    adminFilterGroup.innerHTML = `
+                        <label>View:</label>
+                        <select id="filter-view">
+                            <option value="all">All Client Work Orders</option>
+                            <option value="mine">My Work Orders Only</option>
+                        </select>
+                    `;
+                    
+                    // Insert as first filter
+                    filtersContainer.insertBefore(adminFilterGroup, filtersContainer.firstChild);
+                    
+                    // Add event listener
+                    document.getElementById('filter-view').addEventListener('change', applyFilters);
+                }
+            }
         }
 
         function setupEventListeners() {
@@ -1300,6 +1374,17 @@
 
         function getFilteredWorkOrders() {
             let filtered = [...workOrders];
+
+            // Admin view filter (if admin)
+            const viewFilter = document.getElementById('filter-view');
+            if (viewFilter && isUserAdmin && currentUser) {
+                const viewValue = viewFilter.value;
+                if (viewValue === 'mine') {
+                    // Show only current user's work orders
+                    filtered = filtered.filter(wo => wo.user_id === currentUser.id);
+                }
+                // 'all' shows all work orders for the client (no additional filtering needed)
+            }
 
             // Filter by status
             const statusFilter = document.getElementById('filter-status').value;
