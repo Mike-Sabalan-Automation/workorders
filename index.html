@@ -1050,10 +1050,15 @@
                 if (workOrder.id < 0) {
                     console.log('DEBUG: Temporary ID detected, inserting new work order');
                     
+                    // Explicitly remove any id field to ensure clean insert
+                    const insertWorkOrder = { ...dbWorkOrder };
+                    delete insertWorkOrder.id;
+                    console.log('DEBUG: Clean insert object (no ID field):', insertWorkOrder);
+                    
                     // Insert new work order (let database generate ID)
                     result = await supabaseClient
                         .from('work_orders')
-                        .insert(dbWorkOrder)
+                        .insert(insertWorkOrder)
                         .select(); // Return the inserted record with generated ID
                     
                     console.log('DEBUG: Insert result:', result);

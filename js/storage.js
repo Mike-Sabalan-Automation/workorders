@@ -143,38 +143,82 @@ class StorageManager {
             
             let result;
             
-            // Check if this is an update (work order already exists in Supabase)
-            const existingWorkOrder = await this.config.supabaseClient
-                .from('work_orders')
-                .select('id')
-                .eq('id', workOrder.id)
-                .eq('user_id', this.state.currentUser.id)
-                .single();
-            
-            if (existingWorkOrder.data && !existingWorkOrder.error) {
-                // Update existing work order
-                result = await this.config.supabaseClient
-                    .from('work_orders')
-                    .update(dbWorkOrder)
-                    .eq('id', workOrder.id)
-                    .eq('user_id', this.state.currentUser.id);
-            } else {
+            // For temporary IDs (negative numbers), always insert as new
+            if (workOrder.id < 0) {
+                console.log('DEBUG: Temporary ID detected, inserting new work order');
+                
+                // Explicitly remove any id field to ensure clean insert
+                const insertWorkOrder = { ...dbWorkOrder };
+                delete insertWorkOrder.id;
+                console.log('DEBUG: Clean insert object (no ID field):', insertWorkOrder);
+                
                 // Insert new work order (let database generate ID)
-                // Don't include ID in insert - let database auto-generate
                 result = await this.config.supabaseClient
                     .from('work_orders')
-                    .insert(dbWorkOrder)
+                    .insert(insertWorkOrder)
                     .select(); // Return the inserted record with generated ID
+                
+                console.log('DEBUG: Insert result:', result);
                 
                 // Update local work order with the database-generated ID
                 if (result.data && result.data[0]) {
                     const insertedId = result.data[0].id;
+                    console.log('DEBUG: Database generated ID:', insertedId);
+                    
                     const index = this.state.workOrders.findIndex(wo => wo.id === workOrder.id);
                     if (index !== -1) {
+                        console.log('DEBUG: Updating local work order at index', index, 'from ID', workOrder.id, 'to ID', insertedId);
                         this.state.workOrders[index].id = insertedId;
                     }
-                    // Update nextId to prevent conflicts with localStorage
+                    // Update nextId to prevent conflicts
                     this.state.nextId = Math.max(this.state.nextId, insertedId + 1);
+                    console.log('DEBUG: Updated nextId to:', this.state.nextId);
+                }
+            } else {
+                console.log('DEBUG: Positive ID detected, checking if exists for update');
+                
+                // Check if this is an update (work order already exists in Supabase)
+                const existingWorkOrder = await this.config.supabaseClient
+                    .from('work_orders')
+                    .select('id')
+                    .eq('id', workOrder.id)
+                    .eq('user_id', this.state.currentUser.id)
+                    .single();
+                
+                console.log('DEBUG: Existing work order check:', existingWorkOrder);
+                
+                if (existingWorkOrder.data && !existingWorkOrder.error) {
+                    // Update existing work order
+                    console.log('DEBUG: Updating existing work order');
+                    result = await this.config.supabaseClient
+                        .from('work_orders')
+                        .update(dbWorkOrder)
+                        .eq('id', workOrder.id)
+                        .eq('user_id', this.state.currentUser.id);
+                } else {
+                    // This should not happen with our new logic, but handle it
+                    console.log('DEBUG: Positive ID but no existing record found, inserting new');
+                    
+                    // Explicitly remove any id field to ensure clean insert
+                    const insertWorkOrder = { ...dbWorkOrder };
+                    delete insertWorkOrder.id;
+                    console.log('DEBUG: Clean fallback insert object (no ID field):', insertWorkOrder);
+                    
+                    result = await this.config.supabaseClient
+                        .from('work_orders')
+                        .insert(insertWorkOrder)
+                        .select();
+                    
+                    if (result.data && result.data[0]) {
+                        const insertedId = result.data[0].id;
+                        console.log('DEBUG: Fallback insert generated ID:', insertedId);
+                        
+                        const index = this.state.workOrders.findIndex(wo => wo.id === workOrder.id);
+                        if (index !== -1) {
+                            this.state.workOrders[index].id = insertedId;
+                        }
+                        this.state.nextId = Math.max(this.state.nextId, insertedId + 1);
+                    }
                 }
             }
             
