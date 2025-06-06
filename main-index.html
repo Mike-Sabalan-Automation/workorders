@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Order Management System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .redirect-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            backdrop-filter: blur(10px);
+        }
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin: 0 0 20px 0;
+            font-size: 1.8rem;
+        }
+        .description {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .spinner {
+            border: 3px solid #e3f2fd;
+            border-top: 3px solid #2196f3;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status {
+            color: #2196f3;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        .manual-link {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+        }
+        .manual-link a {
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .manual-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-container">
+        <div class="logo">📋</div>
+        <h1>Work Order Management System</h1>
+        <div class="description">
+            Streamline your workflow with our comprehensive work order management solution.
+        </div>
+        
+        <div class="spinner"></div>
+        <div class="status" id="status">Redirecting to application...</div>
+        
+        <div class="manual-link">
+            <p>If you're not redirected automatically:</p>
+            <a href="/workorders/" id="manual-link">Click here to access Work Order Management</a>
+        </div>
+    </div>
+
+    <script>
+        // Function to update status
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        // Get current URL and check for auth parameters
+        const currentUrl = window.location.href;
+        const hashPart = window.location.hash;
+        
+        console.log('Current URL:', currentUrl);
+        console.log('Hash part:', hashPart);
+        
+        // Check if this is an authentication callback
+        const isAuthCallback = hashPart.includes('access_token=') || 
+                              hashPart.includes('type=signup') || 
+                              hashPart.includes('type=recovery') ||
+                              hashPart.includes('type=magiclink');
+        
+        if (isAuthCallback) {
+            updateStatus('Processing authentication...');
+            
+            // Build the redirect URL with auth parameters
+            const redirectUrl = `${window.location.origin}/workorders/${hashPart}`;
+            
+            console.log('Auth callback detected, redirecting to:', redirectUrl);
+            
+            // Redirect immediately for auth callbacks
+            setTimeout(() => {
+                window.location.replace(redirectUrl);
+            }, 1000);
+            
+        } else {
+            updateStatus('Loading Work Order Management...');
+            
+            // Regular redirect for normal visits
+            setTimeout(() => {
+                window.location.replace('/workorders/');
+            }, 2000);
+        }
+        
+        // Update manual link to include auth parameters if present
+        if (isAuthCallback) {
+            const manualLink = document.getElementById('manual-link');
+            manualLink.href = `/workorders/${hashPart}`;
+        }
+    </script>
+</body>
+</html>
