@@ -134,7 +134,26 @@ class WorkOrderManager {
     editWorkOrder(id) {
         const workOrder = this.findWorkOrder(id);
         if (workOrder) {
-            document.getElementById('form-title').textContent = 'Edit Work Order';
+            // Show the form (in case it was hidden for technicians)
+            const formSection = document.querySelector('.form-section');
+            if (formSection) {
+                formSection.style.display = 'block';
+            }
+            
+            // Hide technician note if it exists
+            const techNote = document.getElementById('tech-note');
+            if (techNote) {
+                techNote.style.display = 'none';
+            }
+            
+            // Set form title based on user role
+            const formTitle = document.getElementById('form-title');
+            if (this.state.isUserAdmin) {
+                formTitle.textContent = 'Edit Work Order';
+            } else {
+                formTitle.textContent = 'Update Work Order Progress';
+            }
+            
             document.getElementById('edit-id').value = workOrder.id;
             document.getElementById('title').value = workOrder.title;
             document.getElementById('description').value = workOrder.description;
@@ -143,16 +162,34 @@ class WorkOrderManager {
             document.getElementById('due-date').value = workOrder.dueDate;
             document.getElementById('estimated-hours').value = workOrder.estimatedHours;
             
-            // Set assigned user if admin
-            const assignedToSelect = document.getElementById('assigned-to');
-            if (assignedToSelect && workOrder.assignedTo) {
-                assignedToSelect.value = workOrder.assignedTo;
+            // Handle role-specific form setup
+            if (this.state.isUserAdmin) {
+                // Admin can edit everything
+                const assignedToSelect = document.getElementById('assigned-to');
+                if (assignedToSelect && workOrder.assignedTo) {
+                    assignedToSelect.value = workOrder.assignedTo;
+                }
+                document.getElementById('submit-btn').textContent = 'Update Work Order';
+            } else {
+                // Technician - limit editable fields
+                document.getElementById('title').disabled = true;
+                document.getElementById('priority').disabled = true;
+                document.getElementById('due-date').disabled = true;
+                
+                // Focus on description and status for technicians
+                document.getElementById('submit-btn').textContent = 'Update Progress';
+                
+                // Add helpful text for technicians
+                const descriptionField = document.getElementById('description');
+                if (descriptionField.placeholder === 'Describe the work to be done...') {
+                    descriptionField.placeholder = 'Add progress notes, updates, or completion details...';
+                }
             }
-            document.getElementById('submit-btn').textContent = 'Update Work Order';
+            
             document.getElementById('cancel-btn').style.display = 'inline-block';
             
             // Scroll to form
-            document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
+            formSection.scrollIntoView({ behavior: 'smooth' });
         }
     }
 

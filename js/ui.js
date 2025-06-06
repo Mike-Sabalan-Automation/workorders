@@ -19,6 +19,8 @@ class UIManager {
     
     async setupAdminFilters() {
         console.log('DEBUG: setupAdminFilters called, isUserAdmin:', this.state.isUserAdmin);
+        
+        // Setup role-specific UI
         if (this.state.isUserAdmin && this.config.isSupabaseConfigured) {
             // Add admin view filter
             const filtersContainer = document.querySelector('.filters');
@@ -44,6 +46,49 @@ class UIManager {
             
             // Setup admin form controls
             await this.setupAdminFormControls();
+        } else {
+            // Setup technician interface
+            this.setupTechnicianInterface();
+        }
+    }
+    
+    setupTechnicianInterface() {
+        console.log('DEBUG: Setting up technician interface');
+        
+        // Hide admin-only elements
+        const assignToGroup = document.getElementById('assign-to-group');
+        if (assignToGroup) {
+            assignToGroup.style.display = 'none';
+        }
+        
+        // Update form title for technicians
+        const formTitle = document.getElementById('form-title');
+        if (formTitle) {
+            formTitle.textContent = 'Update Work Order';
+        }
+        
+        // Simplify the form for technicians - hide create button, show only when editing
+        const submitBtn = document.getElementById('submit-btn');
+        const formSection = document.querySelector('.form-section');
+        
+        if (submitBtn && formSection) {
+            // Hide the form initially for technicians
+            formSection.style.display = 'none';
+            
+            // Add a note for technicians
+            const techNote = document.createElement('div');
+            techNote.id = 'tech-note';
+            techNote.className = 'form-section';
+            techNote.innerHTML = `
+                <h2>Your Work Orders</h2>
+                <p>Click on any work order below to update its status and add notes.</p>
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <strong>💡 Tip:</strong> You can update work order descriptions to add progress notes and change status when tasks are completed.
+                </div>
+            `;
+            
+            // Insert before the hidden form
+            formSection.parentNode.insertBefore(techNote, formSection);
         }
     }
     
@@ -140,6 +185,16 @@ class UIManager {
     }
 
     resetForm() {
+        // Re-enable any disabled fields
+        document.getElementById('title').disabled = false;
+        document.getElementById('priority').disabled = false;
+        document.getElementById('due-date').disabled = false;
+        
+        // Reset placeholder text
+        const descriptionField = document.getElementById('description');
+        descriptionField.placeholder = 'Describe the work to be done...';
+        
+        // Standard form reset
         document.getElementById('work-order-form').reset();
         document.getElementById('form-title').textContent = 'Create New Work Order';
         document.getElementById('edit-id').value = '';
@@ -151,6 +206,21 @@ class UIManager {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         document.getElementById('due-date').value = tomorrow.toISOString().split('T')[0];
+        
+        // Handle technician-specific reset
+        if (!this.state.isUserAdmin) {
+            // Hide the form again for technicians
+            const formSection = document.querySelector('.form-section');
+            if (formSection) {
+                formSection.style.display = 'none';
+            }
+            
+            // Show the tech note again
+            const techNote = document.getElementById('tech-note');
+            if (techNote) {
+                techNote.style.display = 'block';
+            }
+        }
     }
 
     showNotification(message, type = 'info') {
