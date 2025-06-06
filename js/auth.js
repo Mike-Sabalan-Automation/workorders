@@ -140,14 +140,24 @@ class AuthManager {
         document.getElementById('signup-success').textContent = '';
         
         try {
-            const { data, error } = await this.config.supabaseClient.auth.signUp({ email, password });
+            // Sign up new users as admins by default
+            const { data, error } = await this.config.supabaseClient.auth.signUp({ 
+                email, 
+                password,
+                options: {
+                    data: {
+                        is_admin: true,
+                        organization_id: `${email.split('@')[0]}_org` // Create org based on email prefix
+                    }
+                }
+            });
             
             if (error) {
                 document.getElementById('signup-error').textContent = error.message;
                 return;
             }
             
-            document.getElementById('signup-success').textContent = 'Account created! Please check your email for verification link.';
+            document.getElementById('signup-success').textContent = 'Admin account created! Please check your email for verification link.';
             // Clear form
             document.getElementById('signup-form').reset();
             
