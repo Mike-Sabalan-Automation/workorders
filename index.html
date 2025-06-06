@@ -680,7 +680,7 @@
         
         // Authentication state
         let currentUser = null;
-        let userClientId = 'default';
+        let userOrganizationId = 'org_default';
         let isUserAdmin = false;
         
         // Storage management - uses Supabase when authenticated, falls back to localStorage
@@ -737,7 +737,7 @@
         // Get user client information from JWT metadata
         async function getUserClientInfo() {
             if (!currentUser || !isSupabaseConfigured || !supabaseClient) {
-                userClientId = 'default';
+                userOrganizationId = 'org_default';
                 isUserAdmin = false;
                 return;
             }
@@ -749,10 +749,10 @@
                     const jwt = session.data.session.access_token;
                     const payload = JSON.parse(atob(jwt.split('.')[1]));
                     
-                    userClientId = payload.client_id || currentUser.user_metadata?.client_id || 'default';
+                    userOrganizationId = payload.organization_id || currentUser.user_metadata?.organization_id || 'org_default';
                     isUserAdmin = payload.is_admin || currentUser.user_metadata?.is_admin || false;
                     
-                    console.log(`User client info: client_id=${userClientId}, is_admin=${isUserAdmin}`);
+                    console.log(`User info: organization_id=${userOrganizationId}, is_admin=${isUserAdmin}`);
                     
                     // Update UI to show admin status
                     const userEmailElement = document.getElementById('user-email');
@@ -760,7 +760,7 @@
                 }
             } catch (error) {
                 console.warn('Could not get client info:', error);
-                userClientId = 'default';
+                userOrganizationId = 'org_default';
                 isUserAdmin = false;
             }
         }
