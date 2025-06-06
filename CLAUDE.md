@@ -4,19 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Work Order Management System with both single-file and modular versions:
+This is a Work Order Management System with a clean modular architecture:
 
 - **Frontend**: Pure HTML/CSS/JavaScript (no build system required)
 - **Backend**: Supabase for authentication and data persistence with localStorage fallback
-- **Architecture**: Available in both single-file and modular formats
+- **Architecture**: Modular design with separation of concerns
 
 ## File Structure
 
-### Single File Version
-- `index.html` - Complete application in one file (legacy/monolithic)
-
-### Modular Version (Recommended)
-- `work_orders_modular.html` - Main HTML file
+### Main Application
+- `index.html` - Main HTML file (entry point)
 - `css/styles.css` - All application styles
 - `js/config.js` - Configuration and global state
 - `js/auth.js` - Authentication management
@@ -49,11 +46,11 @@ const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 ### Database Schema
 The application expects a `work_orders` table in Supabase with these fields:
-- `id` (integer, primary key)
-- `user_id` (uuid, foreign key to auth.users)
+- `id` (serial, primary key)
+- `created_by` (uuid, foreign key to auth.users - who created it)
+- `assigned_to` (uuid, foreign key to auth.users - who it's assigned to)
 - `title` (text)
 - `description` (text)
-- `assignee` (text)
 - `priority` (text: 'low', 'medium', 'high')
 - `status` (text: 'open', 'in-progress', 'completed', 'on-hold')
 - `due_date` (date)
@@ -61,16 +58,21 @@ The application expects a `work_orders` table in Supabase with these fields:
 - `created_date` (timestamp)
 - `updated_date` (timestamp)
 
+### User Management
+User properties are stored in `auth.users.raw_user_meta_data`:
+- `organization_id` (string) - Which organization the user belongs to
+- `is_admin` (boolean) - Whether user has admin privileges
+
+### Role-Based Access Control
+- **Admins**: Can create, view, and manage all work orders in their organization
+- **Technicians**: Can only view and edit work orders assigned to them
+- **RLS Policies**: Database-level security enforces these permissions
+
 ## Development Commands
 
 This is a static HTML application with no build process:
 
-### Single File Version
 - **Run locally**: Open `index.html` in a web browser
-- **Deploy**: Upload `index.html` to any web server
-
-### Modular Version (Recommended)
-- **Run locally**: Open `work_orders_modular.html` in a web browser
 - **Deploy**: Upload all files maintaining directory structure
 - **Dependencies**: All external libraries loaded via CDN
 
