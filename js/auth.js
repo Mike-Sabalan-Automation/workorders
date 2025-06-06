@@ -57,19 +57,15 @@ class AuthManager {
                 this.state.currentUser = user;
                 await this.getUserClientInfo();
                 if (window.uiManager) {
-                window.uiManager.showMainView();
-            }
+                    window.uiManager.showMainView();
+                }
                 if (window.uiManager) {
-                    if (window.uiManager) {
-                window.uiManager.setupAdminFilters();
-            }
+                    window.uiManager.setupAdminFilters();
                 }
                 window.storageManager.loadUserData();
             } else {
                 if (window.uiManager) {
-                    if (window.uiManager) {
-                window.uiManager.showAuthView();
-            }
+                    window.uiManager.showAuthView();
                 }
             }
         } catch (error) {

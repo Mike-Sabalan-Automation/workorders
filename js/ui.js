@@ -1,4 +1,4 @@
-// UI Management and utilities
+// UI Management and utilities - v2.1
 class UIManager {
     constructor() {
         this.state = window.appState;

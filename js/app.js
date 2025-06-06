@@ -26,18 +26,18 @@ class App {
             }
         }
         
-        // Set up authentication
+        // Initialize the UI first
+        this.uiManager.initializeApp();
+        this.uiManager.setupEventListeners();
+        
+        // Set up authentication after UI is ready
         this.authManager.setupAuthTabs();
         document.getElementById('login-form').addEventListener('submit', (e) => this.authManager.handleLogin(e));
         document.getElementById('signup-form').addEventListener('submit', (e) => this.authManager.handleSignup(e));
         document.getElementById('logout-btn').addEventListener('click', () => this.authManager.handleLogout());
         
-        // Check if user is already authenticated
+        // Check if user is already authenticated (now UI is ready)
         await this.authManager.checkAuth();
-        
-        // Initialize the rest of the app
-        this.uiManager.initializeApp();
-        this.uiManager.setupEventListeners();
         
         // Add utility features
         setTimeout(() => this.utils.addSampleDataButton(), 100);
