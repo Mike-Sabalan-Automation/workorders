@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .redirect-message {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-message">
+        <h2>Redirecting to Work Order Management...</h2>
+        <div class="spinner"></div>
+        <p>If you're not redirected automatically, <a href="/workorders/" style="color: #87CEEB;">click here</a></p>
+    </div>
+
+    <script>
+        // Get current URL with all parameters
+        const currentUrl = window.location.href;
+        
+        // Check if this is an auth callback (has access_token, type=signup, etc.)
+        if (currentUrl.includes('#access_token=') || currentUrl.includes('type=signup') || currentUrl.includes('type=recovery')) {
+            // Extract the hash part with auth parameters
+            const hashPart = window.location.hash;
+            
+            // Redirect to workorders with the auth parameters  
+            const redirectUrl = 'https://mike-sabalan-automation.github.io/workorders/' + hashPart;
+            console.log('Redirecting to:', redirectUrl);
+            window.location.replace(redirectUrl);
+        } else {
+            // Regular redirect to workorders
+            setTimeout(() => {
+                window.location.replace('https://mike-sabalan-automation.github.io/workorders/');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
