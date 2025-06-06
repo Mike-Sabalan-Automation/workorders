@@ -54,6 +54,17 @@ class UIManager {
     
     setupTechnicianInterface() {
         console.log('DEBUG: Setting up technician interface');
+        console.log('DEBUG: Stack trace for setupTechnicianInterface call:');
+        console.trace();
+        
+        // Check if we're currently in edit mode and should skip setup
+        const formSection = document.querySelector('.form-section');
+        const isEditActive = formSection?.getAttribute('data-edit-active') === 'true';
+        
+        if (isEditActive) {
+            console.log('DEBUG: Skipping technician interface setup - edit is active');
+            return;
+        }
         
         // Hide admin-only elements
         const assignToGroup = document.getElementById('assign-to-group');

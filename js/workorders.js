@@ -194,10 +194,31 @@ class WorkOrderManager {
             console.log('DEBUG: Form section found:', !!formSection);
             
             if (formSection) {
+                console.log('DEBUG: Form section current display before change:', formSection.style.display);
                 formSection.style.display = 'block';
                 // Add a flag to prevent technician interface from hiding the form
                 formSection.setAttribute('data-edit-active', 'true');
                 console.log('DEBUG: Form section made visible and marked as edit-active');
+                console.log('DEBUG: Form section display after change:', formSection.style.display);
+                
+                // Monitor what might be hiding the form
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                            const target = mutation.target;
+                            if (target === formSection && target.style.display === 'none') {
+                                console.error('CRITICAL: Form section was hidden by external code!');
+                                console.error('Current stack trace:');
+                                console.trace();
+                            }
+                        }
+                    });
+                });
+                
+                observer.observe(formSection, { attributes: true, attributeFilter: ['style'] });
+                
+                // Stop observing after 10 seconds
+                setTimeout(() => observer.disconnect(), 10000);
             } else {
                 console.error('DEBUG: Could not find .form-section element!');
                 return;
@@ -284,8 +305,12 @@ class WorkOrderManager {
                 console.log('DEBUG: Document title:', document.title);
                 console.log('DEBUG: App element exists:', !!document.getElementById('app'));
                 console.log('DEBUG: Main view visible:', document.getElementById('main-view')?.style.display);
-                console.log('DEBUG: Form section visible:', document.querySelector('.form-section')?.style.display);
-                console.log('DEBUG: Form section innerHTML length:', document.querySelector('.form-section')?.innerHTML?.length);
+                
+                const formSection = document.querySelector('.form-section');
+                console.log('DEBUG: Form section style.display:', formSection?.style.display);
+                console.log('DEBUG: Form section computed display:', window.getComputedStyle(formSection)?.display);
+                console.log('DEBUG: Form section data-edit-active:', formSection?.getAttribute('data-edit-active'));
+                console.log('DEBUG: Form section innerHTML length:', formSection?.innerHTML?.length);
                 console.log('DEBUG: Body className:', document.body.className);
                 console.log('DEBUG: HTML className:', document.documentElement.className);
             }, 500);
