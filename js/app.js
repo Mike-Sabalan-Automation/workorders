@@ -47,6 +47,55 @@ class App {
         this.utils.setupKeyboardShortcuts();
         
         console.log('Work Order Management System initialized successfully');
+        
+        // Add global error handling and navigation monitoring
+        this.setupGlobalErrorHandling();
+    }
+    
+    setupGlobalErrorHandling() {
+        // Catch all JavaScript errors
+        window.addEventListener('error', function(e) {
+            console.error('GLOBAL ERROR DETECTED:', e.error);
+            console.error('Error message:', e.message);
+            console.error('Error filename:', e.filename);
+            console.error('Error line:', e.lineno);
+            console.error('Current URL:', window.location.href);
+        });
+        
+        // Catch unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('UNHANDLED PROMISE REJECTION:', e.reason);
+            console.error('Current URL:', window.location.href);
+        });
+        
+        // Monitor for page navigation
+        let originalURL = window.location.href;
+        const observer = new MutationObserver(function(mutations) {
+            if (window.location.href !== originalURL) {
+                console.error('CRITICAL: Unexpected page navigation detected!');
+                console.error('From:', originalURL);
+                console.error('To:', window.location.href);
+                originalURL = window.location.href;
+            }
+        });
+        
+        observer.observe(document, { subtree: true, childList: true });
+        
+        // Override window.location to catch programmatic navigation
+        const originalReplace = window.location.replace;
+        const originalAssign = window.location.assign;
+        
+        window.location.replace = function(url) {
+            console.error('LOCATION.REPLACE CALLED:', url);
+            console.trace('Call stack:');
+            return originalReplace.call(this, url);
+        };
+        
+        window.location.assign = function(url) {
+            console.error('LOCATION.ASSIGN CALLED:', url);
+            console.trace('Call stack:');
+            return originalAssign.call(this, url);
+        };
     }
 }
 

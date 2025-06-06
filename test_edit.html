@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Function Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-container { background: #f0f0f0; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007cba; color: white; border: none; border-radius: 4px; }
+        .debug-output { background: #fff; border: 1px solid #ccc; padding: 10px; margin: 10px 0; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Isolated Edit Function Test</h1>
+    
+    <div class="test-container">
+        <h3>Simple Edit Test</h3>
+        <p>This page tests the edit functionality in isolation</p>
+        <button onclick="testSimpleEdit()">Test Simple Edit</button>
+        <button onclick="testWithNavigation()">Test With Navigation Monitor</button>
+        <button onclick="window.location.href='index.html'">Go to Main App</button>
+    </div>
+    
+    <div class="test-container">
+        <h3>Simulate Work Order List</h3>
+        <div class="work-order-item" style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
+            <div>Test Work Order #1</div>
+            <button onclick="simulateEditClick(1)">Edit (Simulate Original)</button>
+            <button onclick="preventiveEditClick(1)">Edit (With Prevention)</button>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Debug Output</h3>
+        <div id="debug-output" class="debug-output"></div>
+        <button onclick="clearDebug()">Clear Debug</button>
+    </div>
+
+    <script>
+        function log(message) {
+            const output = document.getElementById('debug-output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearDebug() {
+            document.getElementById('debug-output').innerHTML = '';
+        }
+        
+        function testSimpleEdit() {
+            log('=== Starting Simple Edit Test ===');
+            log('Current URL: ' + window.location.href);
+            log('Document title: ' + document.title);
+            log('Test completed without issues');
+        }
+        
+        function testWithNavigation() {
+            log('=== Starting Navigation Monitor Test ===');
+            const originalURL = window.location.href;
+            
+            const monitor = setInterval(() => {
+                if (window.location.href !== originalURL) {
+                    log('CRITICAL: Navigation detected!');
+                    log('From: ' + originalURL);
+                    log('To: ' + window.location.href);
+                    clearInterval(monitor);
+                }
+            }, 100);
+            
+            setTimeout(() => {
+                clearInterval(monitor);
+                log('Navigation monitor test completed - no navigation detected');
+            }, 3000);
+            
+            log('Navigation monitor started');
+        }
+        
+        function simulateEditClick(id) {
+            log('=== Simulating Original Edit Click ===');
+            log('Edit clicked for ID: ' + id);
+            
+            // This simulates the original onclick pattern
+            try {
+                log('Attempting to call editWorkOrder...');
+                // Don't actually call it since we don't have the full app loaded
+                log('Would call: window.workOrderManager.editWorkOrder(' + id + ')');
+                log('Simulation completed');
+            } catch (error) {
+                log('Error in simulation: ' + error.message);
+            }
+        }
+        
+        function preventiveEditClick(id) {
+            log('=== Testing Preventive Edit Click ===');
+            log('Edit with prevention clicked for ID: ' + id);
+            
+            // Simulate the new pattern with prevention
+            try {
+                log('event.preventDefault() would be called');
+                log('event.stopPropagation() would be called');
+                log('Attempting to call editWorkOrder...');
+                log('Would call: window.workOrderManager.editWorkOrder(' + id + ')');
+                log('return false would be executed');
+                log('Prevention test completed');
+            } catch (error) {
+                log('Error in prevention test: ' + error.message);
+            }
+        }
+        
+        // Add global error monitoring
+        window.addEventListener('error', function(e) {
+            log('GLOBAL ERROR: ' + e.message + ' at ' + e.filename + ':' + e.lineno);
+        });
+        
+        window.addEventListener('beforeunload', function(e) {
+            log('BEFORE UNLOAD EVENT TRIGGERED');
+        });
+        
+        log('Test page loaded successfully');
+        log('URL: ' + window.location.href);
+    </script>
+</body>
+</html>

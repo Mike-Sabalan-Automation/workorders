@@ -153,9 +153,25 @@ class WorkOrderManager {
     }
 
     editWorkOrder(id) {
+        console.log('=== EDIT WORK ORDER START ===');
         console.log('DEBUG: editWorkOrder called with ID:', id);
         console.log('DEBUG: Current page URL:', window.location.href);
         console.log('DEBUG: Document title:', document.title);
+        console.log('DEBUG: Window history length:', window.history.length);
+        
+        // Monitor for any navigation attempts
+        const originalLocation = window.location.href;
+        const navigationCheck = setInterval(() => {
+            if (window.location.href !== originalLocation) {
+                console.error('CRITICAL: Page navigation detected during edit!');
+                console.error('Original URL:', originalLocation);
+                console.error('New URL:', window.location.href);
+                clearInterval(navigationCheck);
+            }
+        }, 100);
+        
+        // Clear navigation check after 5 seconds
+        setTimeout(() => clearInterval(navigationCheck), 5000);
         
         // Safety check - ensure we're in the right application
         const appElement = document.getElementById('app');
@@ -284,8 +300,8 @@ class WorkOrderManager {
                         <span class="priority-badge priority-${workOrder.priority}">${workOrder.priority}</span>
                     </div>
                     <div class="work-order-actions" onclick="event.stopPropagation()">
-                        <button class="btn btn-small btn-secondary" onclick="window.workOrderManager.editWorkOrder(${workOrder.id})">Edit</button>
-                        <button class="btn btn-small btn-danger" onclick="window.workOrderManager.deleteWorkOrder(${workOrder.id})">Delete</button>
+                        <button class="btn btn-small btn-secondary" onclick="event.preventDefault(); event.stopPropagation(); console.log('EDIT BUTTON CLICKED - ID:', ${workOrder.id}); window.workOrderManager.editWorkOrder(${workOrder.id}); return false;">Edit</button>
+                        <button class="btn btn-small btn-danger" onclick="event.preventDefault(); event.stopPropagation(); window.workOrderManager.deleteWorkOrder(${workOrder.id}); return false;">Delete</button>
                     </div>
                 </div>
             </div>
