@@ -200,6 +200,20 @@ class UIManager {
                 modal.style.display = 'none';
             }
         });
+        
+        // Technician Edit Modal
+        const techModal = document.getElementById('technician-edit-modal');
+        const techForm = document.getElementById('technician-edit-form');
+        
+        if (techForm) {
+            techForm.addEventListener('submit', (e) => window.workOrderManager.handleTechnicianEditSubmit(e));
+        }
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === techModal) {
+                window.workOrderManager.closeTechnicianEdit();
+            }
+        });
     }
 
     resetForm() {

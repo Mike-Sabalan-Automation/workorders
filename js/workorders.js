@@ -153,177 +153,115 @@ class WorkOrderManager {
     }
 
     editWorkOrder(id) {
-        console.log('=== EDIT WORK ORDER START ===');
         console.log('DEBUG: editWorkOrder called with ID:', id);
-        console.log('DEBUG: Current page URL:', window.location.href);
-        console.log('DEBUG: Document title:', document.title);
-        console.log('DEBUG: Window history length:', window.history.length);
         
-        // Monitor for any navigation attempts
-        const originalLocation = window.location.href;
-        const navigationCheck = setInterval(() => {
-            if (window.location.href !== originalLocation) {
-                console.error('CRITICAL: Page navigation detected during edit!');
-                console.error('Original URL:', originalLocation);
-                console.error('New URL:', window.location.href);
-                clearInterval(navigationCheck);
-            }
-        }, 100);
-        
-        // Clear navigation check after 5 seconds
-        setTimeout(() => clearInterval(navigationCheck), 5000);
-        
-        // Safety check - ensure we're in the right application
-        const appElement = document.getElementById('app');
-        const mainView = document.getElementById('main-view');
-        
-        if (!appElement || !mainView) {
-            console.error('DEBUG: Not in the work order management app! App element:', !!appElement, 'Main view:', !!mainView);
-            alert('Error: Application context lost. Please refresh the page.');
+        const workOrder = this.findWorkOrder(id);
+        if (!workOrder) {
+            console.error('Work order not found with ID:', id);
             return;
         }
         
-        console.log('DEBUG: Application context verified');
-        
-        const workOrder = this.findWorkOrder(id);
-        console.log('DEBUG: Found work order:', workOrder);
-        
-        if (workOrder) {
-            // Show the form (in case it was hidden for technicians)
-            const formSection = document.querySelector('.form-section');
-            console.log('DEBUG: Form section found:', !!formSection);
-            
-            if (formSection) {
-                console.log('DEBUG: Form section current display before change:', formSection.style.display);
-                formSection.style.display = 'block';
-                // Add a flag to prevent technician interface from hiding the form
-                formSection.setAttribute('data-edit-active', 'true');
-                console.log('DEBUG: Form section made visible and marked as edit-active');
-                console.log('DEBUG: Form section display after change:', formSection.style.display);
-                
-                // Monitor what might be hiding the form
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                            const target = mutation.target;
-                            if (target === formSection && target.style.display === 'none') {
-                                console.error('CRITICAL: Form section was hidden by external code!');
-                                console.error('Current stack trace:');
-                                console.trace();
-                            }
-                        }
-                    });
-                });
-                
-                observer.observe(formSection, { attributes: true, attributeFilter: ['style'] });
-                
-                // Stop observing after 10 seconds
-                setTimeout(() => observer.disconnect(), 10000);
-            } else {
-                console.error('DEBUG: Could not find .form-section element!');
-                return;
-            }
-            
-            // Hide technician note if it exists
-            const techNote = document.getElementById('tech-note');
-            if (techNote) {
-                techNote.style.display = 'none';
-            }
-            
-            // Set form title based on user role
-            const formTitle = document.getElementById('form-title');
-            if (this.state.isUserAdmin) {
-                formTitle.textContent = 'Edit Work Order';
-            } else {
-                formTitle.textContent = 'Update Work Order Progress';
-            }
-            
-            document.getElementById('edit-id').value = workOrder.id;
-            document.getElementById('title').value = workOrder.title;
-            document.getElementById('description').value = workOrder.description;
-            document.getElementById('priority').value = workOrder.priority;
-            document.getElementById('status').value = workOrder.status;
-            document.getElementById('due-date').value = workOrder.dueDate;
-            document.getElementById('estimated-hours').value = workOrder.estimatedHours;
-            
-            // Handle role-specific form setup
-            if (this.state.isUserAdmin) {
-                // Admin can edit everything
-                const assignedToSelect = document.getElementById('assigned-to');
-                if (assignedToSelect && workOrder.assignedTo) {
-                    assignedToSelect.value = workOrder.assignedTo;
-                }
-                document.getElementById('submit-btn').textContent = 'Update Work Order';
-            } else {
-                // Technician - limit editable fields but make sure they retain values
-                const titleField = document.getElementById('title');
-                const priorityField = document.getElementById('priority');
-                const dueDateField = document.getElementById('due-date');
-                
-                titleField.disabled = true;
-                priorityField.disabled = true;
-                dueDateField.disabled = true;
-                
-                // Store original values to prevent them from being lost
-                titleField.setAttribute('data-original-value', workOrder.title);
-                priorityField.setAttribute('data-original-value', workOrder.priority);
-                dueDateField.setAttribute('data-original-value', workOrder.dueDate);
-                
-                // Focus on description and status for technicians
-                document.getElementById('submit-btn').textContent = 'Update Progress';
-                
-                // Add helpful text for technicians
-                const descriptionField = document.getElementById('description');
-                if (descriptionField.placeholder === 'Describe the work to be done...') {
-                    descriptionField.placeholder = 'Add progress notes, updates, or completion details...';
-                }
-            }
-            
-            document.getElementById('cancel-btn').style.display = 'inline-block';
-            
-            // TEMPORARILY DISABLE SCROLLING TO TEST
-            console.log('DEBUG: Scroll disabled for testing');
-            console.log('DEBUG: Form section position:', formSection.getBoundingClientRect());
-            
-            // Focus on the first editable field instead
-            try {
-                const firstEditableField = document.getElementById('description');
-                if (firstEditableField) {
-                    firstEditableField.focus();
-                    console.log('DEBUG: Focused on description field');
-                }
-            } catch (error) {
-                console.error('DEBUG: Focus error:', error);
-            }
-            
-            console.log('DEBUG: Edit setup completed successfully (scroll disabled)');
-            
-            // Check DOM state after setup
-            setTimeout(() => {
-                console.log('DEBUG: Post-setup DOM check (500ms later)');
-                console.log('DEBUG: Current URL:', window.location.href);
-                console.log('DEBUG: Document title:', document.title);
-                console.log('DEBUG: App element exists:', !!document.getElementById('app'));
-                console.log('DEBUG: Main view visible:', document.getElementById('main-view')?.style.display);
-                
-                const formSection = document.querySelector('.form-section');
-                console.log('DEBUG: Form section style.display:', formSection?.style.display);
-                console.log('DEBUG: Form section computed display:', window.getComputedStyle(formSection)?.display);
-                console.log('DEBUG: Form section data-edit-active:', formSection?.getAttribute('data-edit-active'));
-                console.log('DEBUG: Form section innerHTML length:', formSection?.innerHTML?.length);
-                console.log('DEBUG: Body className:', document.body.className);
-                console.log('DEBUG: HTML className:', document.documentElement.className);
-            }, 500);
-            
-            setTimeout(() => {
-                console.log('DEBUG: Extended DOM check (2000ms later)');
-                console.log('DEBUG: Current URL:', window.location.href);
-                console.log('DEBUG: Document title:', document.title);
-                console.log('DEBUG: Full page HTML length:', document.documentElement.innerHTML.length);
-            }, 2000);
+        // Use different editing approach based on user role
+        if (this.state.isUserAdmin) {
+            this.editWorkOrderAdmin(workOrder);
         } else {
-            console.error('DEBUG: Work order not found with ID:', id);
+            this.editWorkOrderTechnician(workOrder);
         }
+    }
+    
+    editWorkOrderAdmin(workOrder) {
+        // Admin uses the main form
+        const formSection = document.querySelector('.form-section');
+        if (formSection) {
+            formSection.style.display = 'block';
+            formSection.setAttribute('data-edit-active', 'true');
+        }
+        
+        // Hide technician note if it exists
+        const techNote = document.getElementById('tech-note');
+        if (techNote) {
+            techNote.style.display = 'none';
+        }
+        
+        document.getElementById('form-title').textContent = 'Edit Work Order';
+        document.getElementById('edit-id').value = workOrder.id;
+        document.getElementById('title').value = workOrder.title;
+        document.getElementById('description').value = workOrder.description;
+        document.getElementById('priority').value = workOrder.priority;
+        document.getElementById('status').value = workOrder.status;
+        document.getElementById('due-date').value = workOrder.dueDate;
+        document.getElementById('estimated-hours').value = workOrder.estimatedHours;
+        
+        const assignedToSelect = document.getElementById('assigned-to');
+        if (assignedToSelect && workOrder.assignedTo) {
+            assignedToSelect.value = workOrder.assignedTo;
+        }
+        
+        document.getElementById('submit-btn').textContent = 'Update Work Order';
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+        
+        // Scroll to form
+        formSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    editWorkOrderTechnician(workOrder) {
+        // Technician uses a simple modal
+        console.log('DEBUG: Opening technician edit modal for:', workOrder.title);
+        
+        // Populate modal fields
+        document.getElementById('tech-edit-id').value = workOrder.id;
+        document.getElementById('tech-title').value = workOrder.title;
+        document.getElementById('tech-description').value = workOrder.description;
+        document.getElementById('tech-status').value = workOrder.status;
+        document.getElementById('tech-estimated-hours').value = workOrder.estimatedHours;
+        
+        // Show modal
+        document.getElementById('technician-edit-modal').style.display = 'block';
+        
+        // Focus on description field
+        setTimeout(() => {
+            document.getElementById('tech-description').focus();
+        }, 100);
+    }
+    
+    // Handle technician edit form submission
+    handleTechnicianEditSubmit(e) {
+        e.preventDefault();
+        
+        const id = parseInt(document.getElementById('tech-edit-id').value);
+        const workOrder = this.findWorkOrder(id);
+        
+        if (!workOrder) {
+            console.error('Work order not found for technician edit:', id);
+            return;
+        }
+        
+        // Update work order with technician changes
+        const updatedWorkOrder = {
+            ...workOrder,
+            description: document.getElementById('tech-description').value,
+            status: document.getElementById('tech-status').value,
+            estimatedHours: parseFloat(document.getElementById('tech-estimated-hours').value) || 0,
+            updatedDate: new Date().toISOString()
+        };
+        
+        console.log('DEBUG: Technician updating work order:', updatedWorkOrder);
+        
+        // Update the work order
+        this.updateWorkOrder(updatedWorkOrder);
+        
+        // Close modal
+        this.closeTechnicianEdit();
+        
+        // Show success message
+        window.uiManager.showNotification('Work order progress updated successfully!', 'success');
+    }
+    
+    closeTechnicianEdit() {
+        document.getElementById('technician-edit-modal').style.display = 'none';
+        // Clear form
+        document.getElementById('technician-edit-form').reset();
+        document.getElementById('tech-edit-id').value = '';
     }
 
     renderWorkOrders() {
@@ -477,3 +415,8 @@ class WorkOrderManager {
 
 // Create global instance
 window.workOrderManager = new WorkOrderManager();
+
+// Global functions for modal handlers
+function closeTechnicianEdit() {
+    window.workOrderManager.closeTechnicianEdit();
+}
