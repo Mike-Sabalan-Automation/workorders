@@ -261,44 +261,29 @@ class StorageManager {
         }
         
         try {
-            // Instead of using auth.admin, we'll get users who have created work orders
-            // or we can create a public user_profiles view for this purpose
+            // Try to load from user_profiles table first
+            const { data: profileUsers, error: profileError } = await this.config.supabaseClient
+                .from('user_profiles')
+                .select('id, email, is_admin, display_name')
+                .eq('organization_id', this.state.userOrganizationId);
             
-            // For now, let's try a simple approach - get unique user IDs from work orders
-            const { data: workOrderUsers, error: woError } = await this.config.supabaseClient
-                .from('work_orders')
-                .select('created_by, assigned_to')
-                .or(`created_by.eq.${this.state.currentUser.id},assigned_to.eq.${this.state.currentUser.id}`);
-            
-            if (woError) {
-                console.warn('Could not load existing work order users:', woError);
-                // Return at least the current user
-                return [{
-                    id: this.state.currentUser.id,
-                    email: this.state.currentUser.email,
-                    isAdmin: this.state.isUserAdmin
-                }];
+            if (!profileError && profileUsers && profileUsers.length > 0) {
+                console.log('DEBUG: Loaded users from user_profiles table:', profileUsers);
+                return profileUsers.map(user => ({
+                    id: user.id,
+                    email: user.display_name || user.email,
+                    isAdmin: user.is_admin || false
+                }));
             }
             
-            // Get unique user IDs
-            const userIds = new Set();
-            workOrderUsers?.forEach(wo => {
-                if (wo.created_by) userIds.add(wo.created_by);
-                if (wo.assigned_to) userIds.add(wo.assigned_to);
-            });
+            console.warn('Could not load from user_profiles, falling back to current user:', profileError);
             
-            // Always include current user
-            userIds.add(this.state.currentUser.id);
-            
-            // For now, return user IDs with placeholder emails
-            // In a real app, you'd have a user_profiles table to query
-            return Array.from(userIds).map(userId => ({
-                id: userId,
-                email: userId === this.state.currentUser.id ? 
-                    this.state.currentUser.email : 
-                    `User ${userId.substring(0, 8)}...`,
-                isAdmin: userId === this.state.currentUser.id ? this.state.isUserAdmin : false
-            }));
+            // Fallback: return at least the current user
+            return [{
+                id: this.state.currentUser.id,
+                email: this.state.currentUser.email,
+                isAdmin: this.state.isUserAdmin
+            }];
             
         } catch (error) {
             console.error('Error loading organization users:', error);
