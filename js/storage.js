@@ -261,27 +261,53 @@ class StorageManager {
         }
         
         try {
-            // Get all users in the same organization
-            const { data, error } = await this.config.supabaseClient.auth.admin.listUsers();
+            // Instead of using auth.admin, we'll get users who have created work orders
+            // or we can create a public user_profiles view for this purpose
             
-            if (error) {
-                console.error('Error loading organization users:', error);
-                return [];
+            // For now, let's try a simple approach - get unique user IDs from work orders
+            const { data: workOrderUsers, error: woError } = await this.config.supabaseClient
+                .from('work_orders')
+                .select('created_by, assigned_to')
+                .or(`created_by.eq.${this.state.currentUser.id},assigned_to.eq.${this.state.currentUser.id}`);
+            
+            if (woError) {
+                console.warn('Could not load existing work order users:', woError);
+                // Return at least the current user
+                return [{
+                    id: this.state.currentUser.id,
+                    email: this.state.currentUser.email,
+                    isAdmin: this.state.isUserAdmin
+                }];
             }
             
-            // Filter users by organization_id
-            const orgUsers = data.users.filter(user => 
-                user.user_metadata?.organization_id === this.state.userOrganizationId
-            );
+            // Get unique user IDs
+            const userIds = new Set();
+            workOrderUsers?.forEach(wo => {
+                if (wo.created_by) userIds.add(wo.created_by);
+                if (wo.assigned_to) userIds.add(wo.assigned_to);
+            });
             
-            return orgUsers.map(user => ({
-                id: user.id,
-                email: user.email,
-                isAdmin: user.user_metadata?.is_admin || false
+            // Always include current user
+            userIds.add(this.state.currentUser.id);
+            
+            // For now, return user IDs with placeholder emails
+            // In a real app, you'd have a user_profiles table to query
+            return Array.from(userIds).map(userId => ({
+                id: userId,
+                email: userId === this.state.currentUser.id ? 
+                    this.state.currentUser.email : 
+                    `User ${userId.substring(0, 8)}...`,
+                isAdmin: userId === this.state.currentUser.id ? this.state.isUserAdmin : false
             }));
+            
         } catch (error) {
             console.error('Error loading organization users:', error);
-            return [];
+            // Fallback: return at least the current user
+            return [{
+                id: this.state.currentUser.id,
+                email: this.state.currentUser.email,
+                isAdmin: this.state.isUserAdmin
+            }];
         }
     }
 }
