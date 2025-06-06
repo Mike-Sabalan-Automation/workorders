@@ -298,7 +298,7 @@ class WorkOrderManager {
                     </div>
                     <div class="work-order-actions" onclick="event.stopPropagation()">
                         <button class="btn btn-small btn-secondary" onclick="event.preventDefault(); event.stopPropagation(); console.log('EDIT BUTTON CLICKED - ID:', ${workOrder.id}); window.workOrderManager.editWorkOrder(${workOrder.id}); return false;">Edit</button>
-                        <button class="btn btn-small btn-danger" onclick="event.preventDefault(); event.stopPropagation(); window.workOrderManager.deleteWorkOrder(${workOrder.id}); return false;">Delete</button>
+                        ${this.state.isUserAdmin ? `<button class="btn btn-small btn-danger" onclick="event.preventDefault(); event.stopPropagation(); window.workOrderManager.deleteWorkOrder(${workOrder.id}); return false;">Delete</button>` : ''}
                     </div>
                 </div>
             </div>
@@ -393,7 +393,7 @@ class WorkOrderManager {
                 
                 <div style="margin-top: 20px; display: flex; gap: 10px;">
                     <button class="btn btn-secondary" onclick="window.workOrderManager.editWorkOrder(${workOrder.id}); document.getElementById('work-order-modal').style.display='none';">Edit</button>
-                    <button class="btn btn-danger" onclick="window.workOrderManager.deleteWorkOrder(${workOrder.id}); document.getElementById('work-order-modal').style.display='none';">Delete</button>
+                    ${this.state.isUserAdmin ? `<button class="btn btn-danger" onclick="window.workOrderManager.deleteWorkOrder(${workOrder.id}); document.getElementById('work-order-modal').style.display='none';">Delete</button>` : ''}
                 </div>
             `;
             
