@@ -41,7 +41,9 @@ class AuthManager {
         if (!this.config.isSupabaseConfigured || !this.config.supabaseClient) {
             // No Supabase configuration, go directly to main view with localStorage
             console.log('Using localStorage mode - no authentication required');
-            window.uiManager.showMainView();
+            if (window.uiManager) {
+                window.uiManager.showMainView();
+            }
             document.getElementById('user-email').textContent = 'Local User';
             window.storageManager.loadFromStorage();
             window.workOrderManager.renderWorkOrders();
@@ -54,19 +56,40 @@ class AuthManager {
             if (user) {
                 this.state.currentUser = user;
                 await this.getUserClientInfo();
+                if (window.uiManager) {
                 window.uiManager.showMainView();
+            }
+                if (window.uiManager) {
+                    if (window.uiManager) {
                 window.uiManager.setupAdminFilters();
+            }
+                }
                 window.storageManager.loadUserData();
             } else {
+                if (window.uiManager) {
+                    if (window.uiManager) {
                 window.uiManager.showAuthView();
+            }
+                }
             }
         } catch (error) {
             console.warn('Supabase authentication failed, falling back to localStorage mode');
-            window.uiManager.showMainView();
-            document.getElementById('user-email').textContent = 'Local User';
-            window.storageManager.loadFromStorage();
-            window.workOrderManager.renderWorkOrders();
-            window.workOrderManager.updateStats();
+            if (window.uiManager) {
+                if (window.uiManager) {
+                window.uiManager.showMainView();
+            }
+            }
+            const userEmailElement = document.getElementById('user-email');
+            if (userEmailElement) {
+                userEmailElement.textContent = 'Local User';
+            }
+            if (window.storageManager) {
+                window.storageManager.loadFromStorage();
+            }
+            if (window.workOrderManager) {
+                window.workOrderManager.renderWorkOrders();
+                window.workOrderManager.updateStats();
+            }
         }
     }
     
@@ -93,8 +116,12 @@ class AuthManager {
             
             this.state.currentUser = data.user;
             await this.getUserClientInfo();
-            window.uiManager.showMainView();
-            window.uiManager.setupAdminFilters();
+            if (window.uiManager) {
+                window.uiManager.showMainView();
+            }
+            if (window.uiManager) {
+                window.uiManager.setupAdminFilters();
+            }
             window.storageManager.loadUserData();
         } catch (error) {
             document.getElementById('login-error').textContent = 'An unexpected error occurred';
@@ -132,8 +159,14 @@ class AuthManager {
             if (data.user && data.session) {
                 this.state.currentUser = data.user;
                 await this.getUserClientInfo();
+                if (window.uiManager) {
                 window.uiManager.showMainView();
+            }
+                if (window.uiManager) {
+                    if (window.uiManager) {
                 window.uiManager.setupAdminFilters();
+            }
+                }
                 window.storageManager.loadUserData();
             }
         } catch (error) {
@@ -149,7 +182,9 @@ class AuthManager {
                 const { error } = await this.config.supabaseClient.auth.signOut();
                 if (error) {
                     console.error('Logout error:', error);
-                    window.uiManager.showNotification('Error logging out', 'error');
+                    if (window.uiManager) {
+                        window.uiManager.showNotification('Error logging out', 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Logout error:', error);
@@ -171,7 +206,9 @@ class AuthManager {
         
         // Show appropriate view
         if (this.config.isSupabaseConfigured) {
-            window.uiManager.showAuthView();
+            if (window.uiManager) {
+                window.uiManager.showAuthView();
+            }
         } else {
             // In localStorage mode, reload to clear everything
             location.reload();

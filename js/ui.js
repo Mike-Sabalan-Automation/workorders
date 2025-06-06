@@ -80,7 +80,6 @@ class UIManager {
         
         // Simplify the form for technicians - hide create button, show only when editing
         const submitBtn = document.getElementById('submit-btn');
-        const formSection = document.querySelector('.form-section');
         
         if (submitBtn && formSection) {
             // Only hide the form if not in edit mode and not marked as edit-active
