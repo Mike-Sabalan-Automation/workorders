@@ -258,10 +258,42 @@ class WorkOrderManager {
             
             document.getElementById('cancel-btn').style.display = 'inline-block';
             
-            // Scroll to form
-            console.log('DEBUG: About to scroll to form section');
-            formSection.scrollIntoView({ behavior: 'smooth' });
-            console.log('DEBUG: Edit setup completed successfully');
+            // TEMPORARILY DISABLE SCROLLING TO TEST
+            console.log('DEBUG: Scroll disabled for testing');
+            console.log('DEBUG: Form section position:', formSection.getBoundingClientRect());
+            
+            // Focus on the first editable field instead
+            try {
+                const firstEditableField = document.getElementById('description');
+                if (firstEditableField) {
+                    firstEditableField.focus();
+                    console.log('DEBUG: Focused on description field');
+                }
+            } catch (error) {
+                console.error('DEBUG: Focus error:', error);
+            }
+            
+            console.log('DEBUG: Edit setup completed successfully (scroll disabled)');
+            
+            // Check DOM state after setup
+            setTimeout(() => {
+                console.log('DEBUG: Post-setup DOM check (500ms later)');
+                console.log('DEBUG: Current URL:', window.location.href);
+                console.log('DEBUG: Document title:', document.title);
+                console.log('DEBUG: App element exists:', !!document.getElementById('app'));
+                console.log('DEBUG: Main view visible:', document.getElementById('main-view')?.style.display);
+                console.log('DEBUG: Form section visible:', document.querySelector('.form-section')?.style.display);
+                console.log('DEBUG: Form section innerHTML length:', document.querySelector('.form-section')?.innerHTML?.length);
+                console.log('DEBUG: Body className:', document.body.className);
+                console.log('DEBUG: HTML className:', document.documentElement.className);
+            }, 500);
+            
+            setTimeout(() => {
+                console.log('DEBUG: Extended DOM check (2000ms later)');
+                console.log('DEBUG: Current URL:', window.location.href);
+                console.log('DEBUG: Document title:', document.title);
+                console.log('DEBUG: Full page HTML length:', document.documentElement.innerHTML.length);
+            }, 2000);
         } else {
             console.error('DEBUG: Work order not found with ID:', id);
         }

@@ -68,7 +68,7 @@ class App {
             console.error('Current URL:', window.location.href);
         });
         
-        // Monitor for page navigation
+        // Monitor for page navigation and DOM changes
         let originalURL = window.location.href;
         const observer = new MutationObserver(function(mutations) {
             if (window.location.href !== originalURL) {
@@ -77,6 +77,34 @@ class App {
                 console.error('To:', window.location.href);
                 originalURL = window.location.href;
             }
+            
+            // Check for suspicious DOM changes
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            // Check for external scripts being injected
+                            if (node.tagName === 'SCRIPT' && node.src && !node.src.includes('supabase')) {
+                                console.error('EXTERNAL SCRIPT DETECTED:', node.src);
+                            }
+                            // Check for iframe injection
+                            if (node.tagName === 'IFRAME') {
+                                console.error('IFRAME DETECTED:', node.src);
+                            }
+                            // Check for body replacement
+                            if (node.tagName === 'BODY' && node !== document.body) {
+                                console.error('BODY REPLACEMENT DETECTED');
+                            }
+                        }
+                    });
+                    
+                    mutation.removedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.id === 'app') {
+                            console.error('CRITICAL: App element removed from DOM!');
+                        }
+                    });
+                }
+            });
         });
         
         observer.observe(document, { subtree: true, childList: true });
