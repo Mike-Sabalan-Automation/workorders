@@ -148,7 +148,8 @@ class AuthManager {
                     data: {
                         is_admin: true,
                         organization_id: `${email.split('@')[0]}_org` // Create org based on email prefix
-                    }
+                    },
+                    emailRedirectTo: 'https://mike-sabalan-automation.github.io/workorders/'
                 }
             });
             
