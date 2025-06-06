@@ -18,6 +18,7 @@ class UIManager {
     }
     
     async setupAdminFilters() {
+        console.log('DEBUG: setupAdminFilters called, isUserAdmin:', this.state.isUserAdmin);
         if (this.state.isUserAdmin && this.config.isSupabaseConfigured) {
             // Add admin view filter
             const filtersContainer = document.querySelector('.filters');
@@ -47,29 +48,55 @@ class UIManager {
     }
     
     async setupAdminFormControls() {
-        if (!this.state.isUserAdmin) return;
+        if (!this.state.isUserAdmin) {
+            console.log('DEBUG: User is not admin, skipping admin form controls');
+            return;
+        }
+        
+        console.log('DEBUG: Setting up admin form controls');
         
         // Show the assign-to dropdown for admins
         const assignToGroup = document.getElementById('assign-to-group');
         if (assignToGroup) {
             assignToGroup.style.display = 'block';
+            console.log('DEBUG: Assign-to group made visible');
             
             // Load organization users and populate dropdown
+            console.log('DEBUG: Loading organization users...');
             const users = await window.storageManager.loadOrganizationUsers();
+            console.log('DEBUG: Loaded users:', users);
+            
             const assignToSelect = document.getElementById('assigned-to');
             
-            if (assignToSelect && users.length > 0) {
+            if (assignToSelect) {
                 // Clear existing options except the first one
                 assignToSelect.innerHTML = '<option value="">Select technician...</option>';
                 
-                // Add all organization users
-                users.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user.id;
-                    option.textContent = `${user.email}${user.isAdmin ? ' (Admin)' : ' (Technician)'}`;
-                    assignToSelect.appendChild(option);
-                });
+                // Always add current user as an option for admins
+                const currentUserOption = document.createElement('option');
+                currentUserOption.value = this.state.currentUser.id;
+                currentUserOption.textContent = `${this.state.currentUser.email} (Me - Admin)`;
+                assignToSelect.appendChild(currentUserOption);
+                
+                // Add other organization users if any
+                if (users && users.length > 0) {
+                    users.forEach(user => {
+                        // Skip current user since we already added them
+                        if (user.id !== this.state.currentUser.id) {
+                            const option = document.createElement('option');
+                            option.value = user.id;
+                            option.textContent = `${user.email}${user.isAdmin ? ' (Admin)' : ' (Technician)'}`;
+                            assignToSelect.appendChild(option);
+                        }
+                    });
+                }
+                
+                console.log('DEBUG: Dropdown populated with', assignToSelect.options.length, 'options');
+            } else {
+                console.error('DEBUG: Could not find assigned-to select element');
             }
+        } else {
+            console.error('DEBUG: Could not find assign-to-group element');
         }
         
         // Update form title for admins
