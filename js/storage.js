@@ -185,11 +185,17 @@ class StorageManager {
                 
                 if (existingWorkOrder.data && !existingWorkOrder.error) {
                     // Update existing work order
-                    console.log('DEBUG: Updating existing work order');
+                    console.log('DEBUG: Updating existing work order with data:', dbWorkOrder);
+                    console.log('DEBUG: Current user for RLS:', this.state.currentUser?.id);
+                    console.log('DEBUG: User admin status:', this.state.isUserAdmin);
+                    console.log('DEBUG: User organization:', this.state.userOrganizationId);
+                    
                     result = await this.config.supabaseClient
                         .from('work_orders')
                         .update(dbWorkOrder)
                         .eq('id', workOrder.id);
+                        
+                    console.log('DEBUG: Update result:', result);
                 } else {
                     // This should not happen with our new logic, but handle it
                     console.log('DEBUG: Positive ID but no existing record found, inserting new');

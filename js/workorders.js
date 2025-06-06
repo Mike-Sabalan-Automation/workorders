@@ -11,16 +11,27 @@ class WorkOrderManager {
         const formData = new FormData(e.target);
         const isEditMode = document.getElementById('edit-id').value;
         
+        // For technicians editing, get original values for disabled fields
+        const getFieldValue = (fieldName, fallback) => {
+            const field = document.getElementById(fieldName);
+            if (field && field.disabled && field.getAttribute('data-original-value')) {
+                return field.getAttribute('data-original-value');
+            }
+            return formData.get(fieldName) || fallback;
+        };
+
         const workOrder = {
             id: isEditMode ? 
                 parseInt(document.getElementById('edit-id').value) : 
                 this.generateTempId(), // Use temporary ID for new work orders
-            title: formData.get('title'),
+            title: getFieldValue('title', ''),
             description: formData.get('description'),
-            assignedTo: formData.get('assigned-to') || this.state.currentUser.id,
-            priority: formData.get('priority'),
+            assignedTo: this.state.isUserAdmin ? 
+                (formData.get('assigned-to') || this.state.currentUser.id) : 
+                (isEditMode ? this.findWorkOrder(document.getElementById('edit-id').value).assignedTo : this.state.currentUser.id),
+            priority: getFieldValue('priority', 'medium'),
             status: formData.get('status'),
-            dueDate: formData.get('due-date'),
+            dueDate: getFieldValue('due-date', ''),
             estimatedHours: parseFloat(formData.get('estimated-hours')) || 0,
             createdBy: this.state.currentUser.id,
             createdDate: isEditMode ? 
@@ -29,6 +40,11 @@ class WorkOrderManager {
             updatedDate: new Date().toISOString()
         };
 
+        console.log('DEBUG: Form submission - isEditMode:', isEditMode, 'workOrder:', workOrder);
+        console.log('DEBUG: User role - isUserAdmin:', this.state.isUserAdmin);
+        console.log('DEBUG: Current user ID:', this.state.currentUser?.id);
+        console.log('DEBUG: Work order assignedTo:', workOrder.assignedTo);
+        
         if (isEditMode) {
             this.updateWorkOrder(workOrder);
         } else {
@@ -78,7 +94,10 @@ class WorkOrderManager {
     }
 
     updateWorkOrder(updatedWorkOrder) {
+        console.log('DEBUG: updateWorkOrder called with:', updatedWorkOrder);
         const index = this.state.workOrders.findIndex(wo => wo.id == updatedWorkOrder.id);
+        console.log('DEBUG: Found work order at index:', index);
+        
         if (index !== -1) {
             this.state.workOrders[index] = updatedWorkOrder;
             
@@ -87,7 +106,7 @@ class WorkOrderManager {
             
             // Try to save to Supabase if authenticated
             if (this.state.currentUser && window.appConfig.isSupabaseConfigured && window.appConfig.supabaseClient) {
-                console.log('Attempting to update in Supabase...', updatedWorkOrder);
+                console.log('DEBUG: Attempting to update in Supabase...', updatedWorkOrder);
                 window.storageManager.saveToSupabase(updatedWorkOrder).then(success => {
                     if (success) {
                         window.uiManager.showNotification('Work order updated in cloud successfully!', 'success');
@@ -96,9 +115,11 @@ class WorkOrderManager {
                     }
                 });
             } else {
-                console.log('Updating locally only (not authenticated)');
+                console.log('DEBUG: Updating locally only (not authenticated)');
                 window.uiManager.showNotification('Work order updated successfully!', 'success');
             }
+        } else {
+            console.error('DEBUG: Could not find work order with ID:', updatedWorkOrder.id);
         }
     }
 
@@ -132,12 +153,36 @@ class WorkOrderManager {
     }
 
     editWorkOrder(id) {
+        console.log('DEBUG: editWorkOrder called with ID:', id);
+        console.log('DEBUG: Current page URL:', window.location.href);
+        console.log('DEBUG: Document title:', document.title);
+        
+        // Safety check - ensure we're in the right application
+        const appElement = document.getElementById('app');
+        const mainView = document.getElementById('main-view');
+        
+        if (!appElement || !mainView) {
+            console.error('DEBUG: Not in the work order management app! App element:', !!appElement, 'Main view:', !!mainView);
+            alert('Error: Application context lost. Please refresh the page.');
+            return;
+        }
+        
+        console.log('DEBUG: Application context verified');
+        
         const workOrder = this.findWorkOrder(id);
+        console.log('DEBUG: Found work order:', workOrder);
+        
         if (workOrder) {
             // Show the form (in case it was hidden for technicians)
             const formSection = document.querySelector('.form-section');
+            console.log('DEBUG: Form section found:', !!formSection);
+            
             if (formSection) {
                 formSection.style.display = 'block';
+                console.log('DEBUG: Form section made visible');
+            } else {
+                console.error('DEBUG: Could not find .form-section element!');
+                return;
             }
             
             // Hide technician note if it exists
@@ -171,10 +216,19 @@ class WorkOrderManager {
                 }
                 document.getElementById('submit-btn').textContent = 'Update Work Order';
             } else {
-                // Technician - limit editable fields
-                document.getElementById('title').disabled = true;
-                document.getElementById('priority').disabled = true;
-                document.getElementById('due-date').disabled = true;
+                // Technician - limit editable fields but make sure they retain values
+                const titleField = document.getElementById('title');
+                const priorityField = document.getElementById('priority');
+                const dueDateField = document.getElementById('due-date');
+                
+                titleField.disabled = true;
+                priorityField.disabled = true;
+                dueDateField.disabled = true;
+                
+                // Store original values to prevent them from being lost
+                titleField.setAttribute('data-original-value', workOrder.title);
+                priorityField.setAttribute('data-original-value', workOrder.priority);
+                dueDateField.setAttribute('data-original-value', workOrder.dueDate);
                 
                 // Focus on description and status for technicians
                 document.getElementById('submit-btn').textContent = 'Update Progress';
@@ -189,7 +243,11 @@ class WorkOrderManager {
             document.getElementById('cancel-btn').style.display = 'inline-block';
             
             // Scroll to form
+            console.log('DEBUG: About to scroll to form section');
             formSection.scrollIntoView({ behavior: 'smooth' });
+            console.log('DEBUG: Edit setup completed successfully');
+        } else {
+            console.error('DEBUG: Work order not found with ID:', id);
         }
     }
 
