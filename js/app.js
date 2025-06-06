@@ -40,7 +40,6 @@ class App {
         await this.authManager.checkAuth();
         
         // Add utility features
-        setTimeout(() => this.utils.addSampleDataButton(), 100);
         setTimeout(() => this.utils.addImportExportButtons(), 100);
         
         // Setup keyboard shortcuts

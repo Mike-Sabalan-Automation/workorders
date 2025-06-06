@@ -155,66 +155,6 @@ class Utils {
         header.appendChild(buttonContainer);
     }
 
-    // Sample data for demonstration
-    loadSampleData() {
-        const sampleOrders = [
-            {
-                id: window.workOrderManager.generateTempId(),
-                title: "Fix Office Printer",
-                description: "The main office printer is jamming frequently and needs maintenance. Users are unable to print important documents.",
-                assignee: "John Smith",
-                priority: "high",
-                status: "open",
-                dueDate: "2025-06-06",
-                estimatedHours: 2,
-                createdDate: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-                updatedDate: new Date(Date.now() - 86400000).toISOString()
-            },
-            {
-                id: window.workOrderManager.generateTempId(),
-                title: "Update Software Documentation",
-                description: "Review and update the user manual for the new software version. Include screenshots and step-by-step instructions.",
-                assignee: "Sarah Johnson",
-                priority: "medium",
-                status: "in-progress",
-                dueDate: "2025-06-10",
-                estimatedHours: 8,
-                createdDate: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-                updatedDate: new Date(Date.now() - 43200000).toISOString() // 12 hours ago
-            },
-            {
-                id: window.workOrderManager.generateTempId(),
-                title: "Replace Broken Conference Room Chair",
-                description: "One of the chairs in Conference Room B has a broken wheel and needs to be replaced for safety reasons.",
-                assignee: "Mike Wilson",
-                priority: "low",
-                status: "completed",
-                dueDate: "2025-06-05",
-                estimatedHours: 1,
-                createdDate: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-                updatedDate: new Date(Date.now() - 21600000).toISOString() // 6 hours ago
-            }
-        ];
-
-        window.appState.workOrders.push(...sampleOrders);
-        window.storageManager.saveToStorage();
-        window.workOrderManager.renderWorkOrders();
-        window.workOrderManager.updateStats();
-        window.uiManager.showNotification('Sample data loaded successfully!', 'success');
-    }
-
-    // Add sample data button (for demonstration)
-    addSampleDataButton() {
-        const formSection = document.querySelector('.form-section');
-        const sampleButton = document.createElement('button');
-        sampleButton.type = 'button';
-        sampleButton.className = 'btn btn-secondary';
-        sampleButton.textContent = 'Load Sample Data';
-        sampleButton.style.marginTop = '10px';
-        sampleButton.style.width = '100%';
-        sampleButton.onclick = () => this.loadSampleData();
-        formSection.appendChild(sampleButton);
-    }
 
     // Keyboard shortcuts
     setupKeyboardShortcuts() {
