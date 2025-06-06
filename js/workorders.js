@@ -17,11 +17,12 @@ class WorkOrderManager {
                 this.generateTempId(), // Use temporary ID for new work orders
             title: formData.get('title'),
             description: formData.get('description'),
-            assignee: formData.get('assignee'),
+            assignedTo: formData.get('assigned-to') || this.state.currentUser.id,
             priority: formData.get('priority'),
             status: formData.get('status'),
             dueDate: formData.get('due-date'),
             estimatedHours: parseFloat(formData.get('estimated-hours')) || 0,
+            createdBy: this.state.currentUser.id,
             createdDate: isEditMode ? 
                 this.findWorkOrder(document.getElementById('edit-id').value).createdDate : 
                 new Date().toISOString(),
@@ -137,11 +138,16 @@ class WorkOrderManager {
             document.getElementById('edit-id').value = workOrder.id;
             document.getElementById('title').value = workOrder.title;
             document.getElementById('description').value = workOrder.description;
-            document.getElementById('assignee').value = workOrder.assignee;
             document.getElementById('priority').value = workOrder.priority;
             document.getElementById('status').value = workOrder.status;
             document.getElementById('due-date').value = workOrder.dueDate;
             document.getElementById('estimated-hours').value = workOrder.estimatedHours;
+            
+            // Set assigned user if admin
+            const assignedToSelect = document.getElementById('assigned-to');
+            if (assignedToSelect && workOrder.assignedTo) {
+                assignedToSelect.value = workOrder.assignedTo;
+            }
             document.getElementById('submit-btn').textContent = 'Update Work Order';
             document.getElementById('cancel-btn').style.display = 'inline-block';
             
@@ -173,7 +179,7 @@ class WorkOrderManager {
                 <div class="work-order-title">${workOrder.title}</div>
                 <div class="work-order-details">
                     ${workOrder.description ? `<p>${workOrder.description.substring(0, 100)}${workOrder.description.length > 100 ? '...' : ''}</p>` : ''}
-                    ${workOrder.assignee ? `<p><strong>Assignee:</strong> ${workOrder.assignee}</p>` : ''}
+                    ${workOrder.assignedTo ? `<p><strong>Assigned To:</strong> ${this.getUserDisplayName(workOrder.assignedTo)}</p>` : ''}
                     ${workOrder.dueDate ? `<p><strong>Due:</strong> ${window.utils.formatDate(workOrder.dueDate)}</p>` : ''}
                     ${workOrder.estimatedHours ? `<p><strong>Est. Hours:</strong> ${workOrder.estimatedHours}h</p>` : ''}
                 </div>
@@ -199,10 +205,10 @@ class WorkOrderManager {
         if (viewFilter && this.state.isUserAdmin && this.state.currentUser) {
             const viewValue = viewFilter.value;
             if (viewValue === 'mine') {
-                // Show only current user's work orders
-                filtered = filtered.filter(wo => wo.user_id === this.state.currentUser.id);
+                // Show only work orders assigned to current user
+                filtered = filtered.filter(wo => wo.assignedTo === this.state.currentUser.id);
             }
-            // 'all' shows all work orders for the client (no additional filtering needed)
+            // 'all' shows all work orders in the organization (RLS handles this)
         }
 
         // Filter by status
@@ -285,6 +291,17 @@ class WorkOrderManager {
             
             modal.style.display = 'block';
         }
+    }
+    
+    // Helper function to get user display name from ID
+    getUserDisplayName(userId) {
+        if (userId === this.state.currentUser?.id) {
+            return 'Me';
+        }
+        
+        // In a real app, you'd cache user info or look it up
+        // For now, just show partial ID
+        return `User ${userId.substring(0, 8)}...`;
     }
 }
 

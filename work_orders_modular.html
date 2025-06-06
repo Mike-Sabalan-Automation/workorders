@@ -88,9 +88,11 @@
                                 <textarea id="description" name="description" placeholder="Describe the work to be done..."></textarea>
                             </div>
 
-                            <div class="form-group">
-                                <label for="assignee">Assignee</label>
-                                <input type="text" id="assignee" name="assignee" placeholder="Enter assignee name">
+                            <div class="form-group" id="assign-to-group" style="display: none;">
+                                <label for="assigned-to">Assign To *</label>
+                                <select id="assigned-to" name="assigned-to" required>
+                                    <option value="">Select technician...</option>
+                                </select>
                             </div>
 
                             <div class="form-group">

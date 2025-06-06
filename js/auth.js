@@ -8,7 +8,7 @@ class AuthManager {
     // Get user client information from JWT metadata
     async getUserClientInfo() {
         if (!this.state.currentUser || !this.config.isSupabaseConfigured || !this.config.supabaseClient) {
-            this.state.userClientId = 'default';
+            this.state.userOrganizationId = 'org_default';
             this.state.isUserAdmin = false;
             return;
         }
@@ -20,18 +20,18 @@ class AuthManager {
                 const jwt = session.data.session.access_token;
                 const payload = JSON.parse(atob(jwt.split('.')[1]));
                 
-                this.state.userClientId = payload.client_id || this.state.currentUser.user_metadata?.client_id || 'default';
+                this.state.userOrganizationId = payload.organization_id || this.state.currentUser.user_metadata?.organization_id || 'org_default';
                 this.state.isUserAdmin = payload.is_admin || this.state.currentUser.user_metadata?.is_admin || false;
                 
-                console.log(`User client info: client_id=${this.state.userClientId}, is_admin=${this.state.isUserAdmin}`);
+                console.log(`User info: organization_id=${this.state.userOrganizationId}, is_admin=${this.state.isUserAdmin}`);
                 
                 // Update UI to show admin status
                 const userEmailElement = document.getElementById('user-email');
                 userEmailElement.textContent = `${this.state.currentUser.email}${this.state.isUserAdmin ? ' (Admin)' : ''}`;
             }
         } catch (error) {
-            console.warn('Could not get client info:', error);
-            this.state.userClientId = 'default';
+            console.warn('Could not get organization info:', error);
+            this.state.userOrganizationId = 'org_default';
             this.state.isUserAdmin = false;
         }
     }

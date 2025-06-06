@@ -65,11 +65,11 @@ class StorageManager {
             let query = this.config.supabaseClient.from('work_orders').select('*');
             
             if (this.state.isUserAdmin) {
-                // Admin users see all work orders for their client (RLS policy handles this)
+                // Admin users see all work orders in their organization (RLS policy handles this)
                 console.log('Loading work orders for admin user');
             } else {
-                // Regular users see only their own work orders
-                query = query.eq('user_id', this.state.currentUser.id);
+                // Technicians see only work orders assigned to them (RLS policy handles this)
+                console.log('Loading work orders for technician user');
             }
             
             const { data, error } = await query;
@@ -87,10 +87,10 @@ class StorageManager {
                 // Map database fields to JavaScript object fields
                 this.state.workOrders = data.map(dbWorkOrder => ({
                     id: dbWorkOrder.id,
-                    user_id: dbWorkOrder.user_id,
+                    createdBy: dbWorkOrder.created_by,
+                    assignedTo: dbWorkOrder.assigned_to,
                     title: dbWorkOrder.title,
                     description: dbWorkOrder.description || '',
-                    assignee: dbWorkOrder.assignee || '',
                     priority: dbWorkOrder.priority || 'medium',
                     status: dbWorkOrder.status || 'open',
                     dueDate: dbWorkOrder.due_date || '',
@@ -124,12 +124,12 @@ class StorageManager {
         if (!this.state.currentUser || !this.config.isSupabaseConfigured || !this.config.supabaseClient) return false;
         
         try {
-            // Map JavaScript object to database field names (user properties are stored in auth.users, not work_orders)
+            // Map JavaScript object to database field names
             const dbWorkOrder = {
-                user_id: this.state.currentUser.id,
+                created_by: this.state.currentUser.id,
+                assigned_to: workOrder.assignedTo || this.state.currentUser.id,
                 title: workOrder.title,
                 description: workOrder.description || '',
-                assignee: workOrder.assignee || '',
                 priority: workOrder.priority || 'medium',
                 status: workOrder.status || 'open',
                 due_date: workOrder.dueDate || null,
@@ -179,7 +179,6 @@ class StorageManager {
                     .from('work_orders')
                     .select('id')
                     .eq('id', workOrder.id)
-                    .eq('user_id', this.state.currentUser.id)
                     .single();
                 
                 console.log('DEBUG: Existing work order check:', existingWorkOrder);
@@ -190,8 +189,7 @@ class StorageManager {
                     result = await this.config.supabaseClient
                         .from('work_orders')
                         .update(dbWorkOrder)
-                        .eq('id', workOrder.id)
-                        .eq('user_id', this.state.currentUser.id);
+                        .eq('id', workOrder.id);
                 } else {
                     // This should not happen with our new logic, but handle it
                     console.log('DEBUG: Positive ID but no existing record found, inserting new');
@@ -242,8 +240,7 @@ class StorageManager {
             const { error } = await this.config.supabaseClient
                 .from('work_orders')
                 .delete()
-                .eq('id', id)
-                .eq('user_id', this.state.currentUser.id);
+                .eq('id', id);
                 
             if (error) {
                 console.error('Error deleting from Supabase:', error);
@@ -254,6 +251,37 @@ class StorageManager {
         } catch (error) {
             console.error('Error deleting from Supabase:', error);
             return false;
+        }
+    }
+    
+    // Load organization users for admin assignment dropdown
+    async loadOrganizationUsers() {
+        if (!this.state.currentUser || !this.config.isSupabaseConfigured || !this.config.supabaseClient || !this.state.isUserAdmin) {
+            return [];
+        }
+        
+        try {
+            // Get all users in the same organization
+            const { data, error } = await this.config.supabaseClient.auth.admin.listUsers();
+            
+            if (error) {
+                console.error('Error loading organization users:', error);
+                return [];
+            }
+            
+            // Filter users by organization_id
+            const orgUsers = data.users.filter(user => 
+                user.user_metadata?.organization_id === this.state.userOrganizationId
+            );
+            
+            return orgUsers.map(user => ({
+                id: user.id,
+                email: user.email,
+                isAdmin: user.user_metadata?.is_admin || false
+            }));
+        } catch (error) {
+            console.error('Error loading organization users:', error);
+            return [];
         }
     }
 }

@@ -17,7 +17,7 @@ class UIManager {
         document.getElementById('main-view').style.display = 'block';
     }
     
-    setupAdminFilters() {
+    async setupAdminFilters() {
         if (this.state.isUserAdmin && this.config.isSupabaseConfigured) {
             // Add admin view filter
             const filtersContainer = document.querySelector('.filters');
@@ -29,7 +29,7 @@ class UIManager {
                 adminFilterGroup.innerHTML = `
                     <label>View:</label>
                     <select id="filter-view">
-                        <option value="all">All Client Work Orders</option>
+                        <option value="all">All Organization Work Orders</option>
                         <option value="mine">My Work Orders Only</option>
                     </select>
                 `;
@@ -40,6 +40,42 @@ class UIManager {
                 // Add event listener
                 document.getElementById('filter-view').addEventListener('change', () => window.workOrderManager.applyFilters());
             }
+            
+            // Setup admin form controls
+            await this.setupAdminFormControls();
+        }
+    }
+    
+    async setupAdminFormControls() {
+        if (!this.state.isUserAdmin) return;
+        
+        // Show the assign-to dropdown for admins
+        const assignToGroup = document.getElementById('assign-to-group');
+        if (assignToGroup) {
+            assignToGroup.style.display = 'block';
+            
+            // Load organization users and populate dropdown
+            const users = await window.storageManager.loadOrganizationUsers();
+            const assignToSelect = document.getElementById('assigned-to');
+            
+            if (assignToSelect && users.length > 0) {
+                // Clear existing options except the first one
+                assignToSelect.innerHTML = '<option value="">Select technician...</option>';
+                
+                // Add all organization users
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.email}${user.isAdmin ? ' (Admin)' : ' (Technician)'}`;
+                    assignToSelect.appendChild(option);
+                });
+            }
+        }
+        
+        // Update form title for admins
+        const formTitle = document.getElementById('form-title');
+        if (formTitle && formTitle.textContent === 'Create New Work Order') {
+            formTitle.textContent = 'Create & Assign Work Order';
         }
     }
 

@@ -30,7 +30,7 @@ class AppState {
     constructor() {
         // Authentication state
         this.currentUser = null;
-        this.userClientId = 'default';
+        this.userOrganizationId = 'org_default';
         this.isUserAdmin = false;
         
         // Data state
@@ -42,7 +42,7 @@ class AppState {
     // Reset state on logout
     reset() {
         this.currentUser = null;
-        this.userClientId = 'default';
+        this.userOrganizationId = 'org_default';
         this.isUserAdmin = false;
         this.workOrders = [];
         this.nextId = 1;
