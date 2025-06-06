@@ -195,7 +195,9 @@ class WorkOrderManager {
             
             if (formSection) {
                 formSection.style.display = 'block';
-                console.log('DEBUG: Form section made visible');
+                // Add a flag to prevent technician interface from hiding the form
+                formSection.setAttribute('data-edit-active', 'true');
+                console.log('DEBUG: Form section made visible and marked as edit-active');
             } else {
                 console.error('DEBUG: Could not find .form-section element!');
                 return;

@@ -109,21 +109,8 @@ class App {
         
         observer.observe(document, { subtree: true, childList: true });
         
-        // Override window.location to catch programmatic navigation
-        const originalReplace = window.location.replace;
-        const originalAssign = window.location.assign;
-        
-        window.location.replace = function(url) {
-            console.error('LOCATION.REPLACE CALLED:', url);
-            console.trace('Call stack:');
-            return originalReplace.call(this, url);
-        };
-        
-        window.location.assign = function(url) {
-            console.error('LOCATION.ASSIGN CALLED:', url);
-            console.trace('Call stack:');
-            return originalAssign.call(this, url);
-        };
+        // Note: Skipping location override due to read-only property restrictions
+        console.log('DEBUG: Navigation monitoring active (location override skipped)');
     }
 }
 

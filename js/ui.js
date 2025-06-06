@@ -72,8 +72,16 @@ class UIManager {
         const formSection = document.querySelector('.form-section');
         
         if (submitBtn && formSection) {
-            // Hide the form initially for technicians
-            formSection.style.display = 'none';
+            // Only hide the form if not in edit mode and not marked as edit-active
+            const isEditMode = document.getElementById('edit-id').value;
+            const isEditActive = formSection.getAttribute('data-edit-active') === 'true';
+            
+            if (!isEditMode && !isEditActive) {
+                console.log('DEBUG: Hiding form for technician (not in edit mode)');
+                formSection.style.display = 'none';
+            } else {
+                console.log('DEBUG: Keeping form visible for technician (edit mode or edit-active)');
+            }
             
             // Add a note for technicians
             const techNote = document.createElement('div');
@@ -209,10 +217,12 @@ class UIManager {
         
         // Handle technician-specific reset
         if (!this.state.isUserAdmin) {
-            // Hide the form again for technicians
+            // Hide the form again for technicians and clear edit-active flag
             const formSection = document.querySelector('.form-section');
             if (formSection) {
                 formSection.style.display = 'none';
+                formSection.removeAttribute('data-edit-active');
+                console.log('DEBUG: Form hidden and edit-active flag cleared for technician');
             }
             
             // Show the tech note again
